@@ -37,7 +37,7 @@ colorama==0.4.3
 comtypes==1.1.7
 conda==4.8.3
 conda-build==3.18.11
-conda-package-handling==1.6.0
+conda-package-handling==1.7.0
 conda-verify==3.4.2
 contextlib2==0.6.0.post1
 cryptography==2.8
@@ -95,8 +95,7 @@ jupyter-core==4.6.1
 jupyterlab==1.2.6
 jupyterlab-server==1.0.6
 Keras==2.4.3
-Keras-Applications==1.0.8
-Keras-Preprocessing==1.1.0
+Keras-Preprocessing==1.1.2
 keyring==21.1.0
 kiwisolver==1.1.0
 lazy-object-proxy==1.4.3
@@ -236,6 +235,8 @@ tensorboard==2.2.2
 tensorboard-plugin-wit==1.7.0
 tensorflow==2.2.0
 tensorflow-estimator==2.2.0
+tensorflow-gpu==2.2.0
+tensorflow-gpu-estimator==2.2.0
 termcolor==1.1.0
 terminado==0.8.3
 testpath==0.4.4
