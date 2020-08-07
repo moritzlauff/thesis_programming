@@ -4,6 +4,7 @@
 /notebooks/__pycache__
 # /code_tests
 /code_test/.ipynb_checkpoints
+# models
 
 # Python Cache
 .pyc
