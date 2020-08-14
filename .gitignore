@@ -5,6 +5,8 @@
 # /code_tests
 /code_test/.ipynb_checkpoints
 # models
+python/functions/__pycache__
+python/architecture/__pycache__
 
 # Python Cache
 .pyc
