@@ -8,9 +8,9 @@
 import sys
 sys.path.insert(1, "../architecture")
 
-import keras
-from keras.layers import Dense
-from keras.models import Sequential
+import tensorflow
+from tensorflow.python.keras.layers import Dense
+from tensorflow.python.keras.models import Sequential
 import numpy as np
 import reproducible
 
@@ -20,8 +20,8 @@ class NNError(Exception):
 def nn_model_structure(layers,
                        neurons,
                        n_cols,
-                       weight_initializer = keras.initializers.GlorotNormal(),
-                       bias_initializer = keras.initializers.GlorotNormal(),
+                       weight_initializer = tensorflow.python.keras.initializers.GlorotNormal(),
+                       bias_initializer = tensorflow.python.keras.initializers.GlorotNormal(),
                        activation_first = "relu",
                        classification = True
                       ):
@@ -49,7 +49,7 @@ def nn_model_structure(layers,
     if len(neurons) != layers:
         raise NNError("Wrong input shape: neurons must be of length of the value of layers.")
 
-    keras.backend.clear_session()
+    tensorflow.python.keras.backend.clear_session()
 
     model = Sequential()
 
