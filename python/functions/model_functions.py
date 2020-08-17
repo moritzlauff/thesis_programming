@@ -229,6 +229,26 @@ def nn_class_pred_true(model,
                        print_comp = False
                        ):
 
+    """ Function to extract true and predicted labels of a classification model.
+
+
+    Parameters:
+
+    model (tensorflow.python.keras.engine.sequential.Sequential): Some fitted model.
+    X_test (np.ndarray): X test data.
+    y_test (pd. DataFrame): Onehot encoded y test data.
+    print_comp (bool): Whether or not to print the comparison result.
+
+
+
+    Returns:
+
+    y_true (list): True labels.
+    y_pred (list): Predicted labels.
+
+
+    """
+
     y_pred = [np.argmax(i) for i in model.predict(X_test)]
     y_true = list(y_test.reset_index(drop = True).apply(lambda x: np.argmax(x), axis = 1))
 
@@ -238,4 +258,4 @@ def nn_class_pred_true(model,
                                                           y_true[i],
                                                           y_pred[i] == y_true[i]))
 
-    return y_pred, y_true
+    return y_true, y_pred
