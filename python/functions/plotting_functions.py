@@ -7,9 +7,13 @@ sys.path.insert(1, "../architecture")
 import numpy as np
 import matplotlib.pyplot as plt
 import reproducible
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
 
 def nn_plot_acc(model,
-                title = ""
+                title = "",
+                savefig = False,
+                file = "../img/accuracy.png"
                ):
 
     """ Function to plot the evolution of the accuracy of the neural network.
@@ -30,4 +34,40 @@ def nn_plot_acc(model,
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
     plt.grid()
+    if savefig:
+        plt.savefig(file)
     plt.show()
+
+def nn_conf_mat(y_true,
+                y_pred,
+                plotting = True,
+                title = "",
+                savefig = False,
+                file = "../img/conf_mat.png"
+                ):
+
+    labels = np.sort(np.unique(np.array(y_true)))
+
+    cm = confusion_matrix(y_true = y_true,
+                          y_pred = y_pred,
+                          labels = labels,
+                          normalize = "true")
+
+    if plotting:
+        plt.figure(figsize = (10, 8))
+        sns.heatmap(cm,
+                    cmap = "YlOrRd",
+                    annot = True,
+                    linewidths = 0.5,
+                    linecolor = "white",
+                    cbar = False)
+        plt.title(title)
+        plt.xticks(fontsize = 16)
+        plt.yticks(rotation = 0, fontsize = 16)
+        plt.xlabel("Predicted Label", fontsize = 20)
+        plt.ylabel("True Label", fontsize = 20)
+        if savefig:
+            plt.savefig(file)
+        plt.show()
+
+    return cm
