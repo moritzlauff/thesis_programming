@@ -219,6 +219,23 @@ def nn_load(path_name):
 
     """
 
-    model = keras.models.load_model(path_name)
+    model = tensorflow.python.keras.models.load_model(path_name)
 
     return model
+
+def nn_class_pred_true(model,
+                       X_test,
+                       y_test,
+                       print_comp = False
+                       ):
+
+    y_pred = [np.argmax(i) for i in model.predict(X_test)]
+    y_true = list(y_test.reset_index(drop = True).apply(lambda x: np.argmax(x), axis = 1))
+
+    if print_comp:
+        for i in range(len(y_pred)):
+            print("Prediction: {}, Actual: {}, {}".format(y_pred[i],
+                                                          y_true[i],
+                                                          y_pred[i] == y_true[i]))
+
+    return y_pred, y_true
