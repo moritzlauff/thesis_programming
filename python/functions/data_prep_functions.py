@@ -5,7 +5,7 @@ import sys
 sys.path.insert(1, "../architecture")
 
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+import tensorflow as tf
 import reproducible
 
 def mnist_prep():
@@ -23,23 +23,11 @@ def mnist_prep():
     y_val_onehot (pd.DataFrame): Validation data y.
 
     """
-
-    train_data = pd.read_csv("../data/MNIST/mnist_train.csv").sample(frac = 1)
-    test_data = pd.read_csv("../data/MNIST/mnist_test.csv").sample(frac = 1)
-
-    X_train = train_data.drop("label", axis = 1)
-    y_train = train_data["label"]
-
-    X_val = test_data.drop("label", axis = 1)
-    y_val = test_data["label"]
-
-    scaler_train = StandardScaler()
-    X_train_scaled = scaler_train.fit_transform(X_train)
-
-    scaler_val = StandardScaler()
-    X_val_scaled = scaler_val.fit_transform(X_val)
+    (X_train, y_train), (X_test, y_test) = tf.keras.datasets.mnist.load_data()
+    X_train = X_train.reshape(-1, 784).astype("float32") / 255.0
+    X_test = X_test.reshape(-1, 784).astype("float32") / 255.0
 
     y_train_onehot = pd.get_dummies(y_train)
-    y_val_onehot = pd.get_dummies(y_val)
+    y_test_onehot = pd.get_dummies(y_test)
 
-    return X_train_scaled, X_val_scaled, y_train_onehot, y_val_onehot
+    return X_train, X_test, y_train_onehot, y_test_onehot
