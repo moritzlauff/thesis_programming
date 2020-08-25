@@ -13,6 +13,7 @@ from tensorflow.python.keras.layers import Dense
 from tensorflow.python.keras.models import Sequential
 import numpy as np
 import reproducible
+from accuracy_callback import BatchAccuracy
 
 class NNError(Exception):
     pass
