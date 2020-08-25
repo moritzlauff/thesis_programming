@@ -1,5 +1,7 @@
 # functions:
 #   nn_plot_acc
+#   nn_conf_mat
+#   nn_plot_iter_acc
 
 import sys
 sys.path.insert(1, "../architecture")
@@ -94,3 +96,63 @@ def nn_conf_mat(y_true,
         plt.show()
 
     return cm
+
+def nn_plot_iter_acc(train_acc_list,
+                     test_acc_list,
+                     iteration_list,
+                     num_ticks_per_epoch = 2,
+                     title = "",
+                     savefig = False,
+                     file = "../img/accuracy_per_iteration.png",
+                     works = False # weg, wenn die Accuracies besser werden
+                     ):
+
+    """ Function to plot the evolution of the accuracy of the neural network per iteration.
+
+
+    Parameters:
+
+    train_acc_list (list): Training accuracies.
+    test_acc_list (list): Test accuracies.
+    title (str): Title of the plot.
+    savefig (bool): Whether or not to save the plot.
+    file (str): Path and filename if savefig is True.
+
+
+    """
+
+    epoch_indices = np.array([i for i in range(len(iteration_list)) \
+                                  if "Batch: 1." in iteration_list[i]]) + 1
+    num_epochs = np.sum(["Batch: 1." in iteration_list[i] for i in range(len(iteration_list))])
+
+    if works: # weg, wenn die Accuracies besser werden
+        ymin = 0
+        ymax = 1
+    else:
+        ymin = 0.07
+        ymax = 0.15
+
+    xticks = np.linspace(start = 0,
+                         stop = len(iteration_list),
+                         num = num_epochs * num_ticks_per_epoch + 1)
+    xticks[0] = 1
+
+    plt.plot(np.arange(len(train_acc_list)) + 1, train_acc_list, label = "Training")
+    plt.plot(np.arange(len(test_acc_list)) + 1, test_acc_list, label = "Testing")
+    plt.vlines(x = epoch_indices,
+               ymin = ymin, # das muss noch auf 0 gesetzt werden, wenn die Accuracies besser werden
+               ymax = ymax, # das muss noch auf 1 gesetzt werden, wenn die Accuracies besser werden
+               color = "red",
+               linestyle = "dotted",
+               label = "Epochs"
+               )
+    plt.legend()
+    plt.title(title)
+    plt.xlabel("Iteration")
+    plt.ylabel("Accuracy")
+    plt.xticks(ticks = xticks)
+    plt.yticks(ticks = np.array([0, 0.2, 0.4, 0.6, 0.8, 1]))
+    plt.grid()
+    if savefig:
+        plt.savefig(file)
+    plt.show()
