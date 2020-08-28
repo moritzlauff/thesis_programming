@@ -29,11 +29,16 @@ def mnist_prep():
     (X_train, y_train), (X_test, y_test) = tf.keras.datasets.mnist.load_data()
     X_train = X_train.reshape(-1, 784).astype("float32") / 255.0
     X_test = X_test.reshape(-1, 784).astype("float32") / 255.0
+    
+    scaler = StandardScaler()
+    scaler.fit(X_train)
+    X_train_scaled = scaler.transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
 
     y_train_onehot = pd.get_dummies(y_train)
     y_test_onehot = pd.get_dummies(y_test)
 
-    return X_train, X_test, y_train_onehot, y_test_onehot
+    return X_train_scaled, X_test_scaled, y_train_onehot, y_test_onehot
 
 def bike_prep():
 
