@@ -4,6 +4,8 @@
 #   nn_model_fit
 #   nn_save
 #   nn_load
+#   nn_class_pred_true
+#   nn_mse_pred_true
 
 import sys
 sys.path.insert(1, "../architecture")
@@ -257,5 +259,41 @@ def nn_class_pred_true(model,
             print("Prediction: {}, Actual: {}, {}".format(y_pred[i],
                                                           y_true[i],
                                                           y_pred[i] == y_true[i]))
+
+    return y_true, y_pred
+
+def nn_mse_pred_true(model,
+                     X_test,
+                     y_test,
+                     print_comp = False
+                     ):
+
+    """ Function to extract true and predicted values of a regression model.
+
+
+    Parameters:
+
+    model (tensorflow.python.keras.engine.sequential.Sequential): Some fitted model.
+    X_test (pd.DataFrame): X test data.
+    y_test (pd. DataFrame): Y test data.
+    print_comp (bool): Whether or not to print the comparison result.
+
+
+
+    Returns:
+
+    y_true (list): True labels.
+    y_pred (list): Predicted labels.
+
+
+    """
+
+    y_pred = np.array(model.predict(X_test))
+    y_true = y_test.reset_index(drop = True)
+
+    if print_comp:
+        for i in range(len(y_pred)):
+            print("Prediction: {}, Actual: {}".format(y_pred[i],
+                                                      y_true[i]))
 
     return y_true, y_pred

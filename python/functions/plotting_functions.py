@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import reproducible
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
+from sklearn.metrics import mean_squared_error
 
 def nn_plot_acc(model,
                 title = "",
@@ -44,6 +45,7 @@ def nn_plot_acc(model,
     plt.title(title)
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
+    plt.xticks(ticks = np.array(model.history.epoch) + 1)
     plt.grid()
     if savefig:
         plt.savefig(file)
@@ -140,13 +142,14 @@ def nn_plot_mse(model,
     plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_mse"], label = "Testing")
     plt.hlines(y = mse_mean,
                xmin = 1,
-               xmax = len(iteration_list),
+               xmax = len(np.array(model.history.epoch)),
                color = "black",
                label = "Mean as prediction")
     plt.legend()
     plt.title(title)
     plt.xlabel("Epoch")
     plt.ylabel("Mean squared error")
+    plt.xticks(ticks = np.array(model.history.epoch) + 1)
     plt.grid()
     if savefig:
         plt.savefig(file)
@@ -159,7 +162,7 @@ def nn_plot_iter_mse(train_mse_list,
                      num_ticks_per_epoch = 2,
                      title = "",
                      savefig = False,
-                     file = "../img/mse_per_iteration.png",
+                     file = "../img/mse_per_iteration.png"
                      ):
 
     """ Function to plot the evolution of the mean squared error of the
@@ -181,8 +184,8 @@ def nn_plot_iter_mse(train_mse_list,
                                   if "Batch: 1." in iteration_list[i]]) + 1
     num_epochs = np.sum(["Batch: 1." in iteration_list[i] for i in range(len(iteration_list))])
 
-    ymin = np.min(np.min(train_mse_list), np.min(test_mse_list)) * 0.9
-    ymax = np.max(np.max(train_mse_list), np.max(test_mse_list)) * 1.1
+    ymin = np.floor(np.min([np.min(train_mse_list), np.min(test_mse_list)]) * 0.9)
+    ymax = np.ceil(np.max([np.max(train_mse_list), np.max(test_mse_list)]) * 1.1)
 
     xticks = np.linspace(start = 0,
                          stop = len(iteration_list),
