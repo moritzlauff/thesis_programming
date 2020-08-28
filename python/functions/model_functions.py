@@ -99,8 +99,7 @@ def nn_model_structure(layers,
     return model
 
 def nn_model_compile(model,
-                     optimizer = "adam",
-                     show_metrics = ["accuracy"]
+                     optimizer = "adam"
                     ):
 
     """ Function to compile the neural network. Almost the same as the built-in keras.Model().compile().
@@ -125,21 +124,21 @@ def nn_model_compile(model,
     if output_size == 1:
         model.compile(optimizer = optimizer,
                       loss = "mean_squared_error",
-                      metrics = show_metrics
+                      metrics = ["mse"]
                      )
 
     # binary classification
     elif output_size == 2:
         model.compile(optimizer = optimizer,
                       loss = "binary_crossentropy",
-                      metrics = show_metrics
+                      metrics = ["accuracy"]
                      )
 
     # multiclass classification
     else:
         model.compile(optimizer = optimizer,
                       loss = "categorical_crossentropy",
-                      metrics = show_metrics
+                      metrics = ["accuracy"]
                      )
 
     return model
