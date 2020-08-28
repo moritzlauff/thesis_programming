@@ -116,7 +116,7 @@ def nn_plot_iter_acc(train_acc_list,
     plt.show()
 
 def nn_plot_mse(model,
-                mse_mean,       # mean_squared_error(y_test, np.ones(shape = (2607,))*np.mean(y_test))
+                mse_mean,       # mean_squared_error(y_test, np.ones(shape = (len(y_test),))*np.mean(y_test))
                 title = "",
                 savefig = False,
                 file = "../img/mse.png"
@@ -155,7 +155,7 @@ def nn_plot_mse(model,
 def nn_plot_iter_mse(train_mse_list,
                      test_mse_list,
                      iteration_list,
-                     mse_mean,          # mean_squared_error(y_test, np.ones(shape = (2607,))*np.mean(y_test))
+                     mse_mean,          # mean_squared_error(y_test, np.ones(shape = (len(y_test),))*np.mean(y_test))
                      num_ticks_per_epoch = 2,
                      title = "",
                      savefig = False,
