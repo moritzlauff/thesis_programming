@@ -1,7 +1,9 @@
 # functions:
 #   nn_plot_acc
-#   nn_conf_mat
 #   nn_plot_iter_acc
+#   nn_plot_mse
+#   nn_plot_iter_mse
+#   nn_conf_mat
 
 import sys
 sys.path.insert(1, "../architecture")
@@ -41,61 +43,6 @@ def nn_plot_acc(model,
     if savefig:
         plt.savefig(file)
     plt.show()
-
-def nn_conf_mat(y_true,
-                y_pred,
-                plotting = True,
-                title = "",
-                savefig = False,
-                file = "../img/conf_mat.png"
-                ):
-
-    """ Function to get and plot the confusion matrix of a classificaton model.
-
-
-    Parameters:
-
-    y_true (list): True labels.
-    y_pred (list): Predicted labels.
-    plotting (bool): Whether or not to plot the confusion matrix.
-    title (str): Title of the plot.
-    savefig (bool): Whether or not to save the plot.
-    file (str): Path and filename if savefig is True.
-
-
-
-    Returns:
-
-    cm (np.ndarray): Confusion matrix.
-
-
-    """
-
-    labels = np.sort(np.unique(np.array(y_true)))
-
-    cm = confusion_matrix(y_true = y_true,
-                          y_pred = y_pred,
-                          labels = labels,
-                          normalize = "true")
-
-    if plotting:
-        plt.figure(figsize = (10, 8))
-        sns.heatmap(cm,
-                    cmap = "YlOrRd",
-                    annot = True,
-                    linewidths = 0.5,
-                    linecolor = "white",
-                    cbar = False)
-        plt.title(title)
-        plt.xticks(fontsize = 16)
-        plt.yticks(rotation = 0, fontsize = 16)
-        plt.xlabel("Predicted Label", fontsize = 20)
-        plt.ylabel("True Label", fontsize = 20)
-        if savefig:
-            plt.savefig(file)
-        plt.show()
-
-    return cm
 
 def nn_plot_iter_acc(train_acc_list,
                      test_acc_list,
@@ -156,3 +103,144 @@ def nn_plot_iter_acc(train_acc_list,
     if savefig:
         plt.savefig(file)
     plt.show()
+
+def nn_plot_mse(model,
+                title = "",
+                savefig = False,
+                file = "../img/mse.png"
+               ):
+
+    """ Function to plot the evolution of the mean squared error of
+    the neural network.
+
+
+    Parameters:
+
+    model (tensorflow.python.keras.engine.sequential.Sequential): Some fitted model.
+    title (str): Title of the plot.
+    savefig (bool): Whether or not to save the plot.
+    file (str): Path and filename if savefig is True.
+
+
+    """
+
+    plt.plot(np.array(model.history.epoch) + 1, model.history.history["mse"], label = "Training")
+    plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_mse"], label = "Testing")
+    plt.legend()
+    plt.title(title)
+    plt.xlabel("Epoch")
+    plt.ylabel("Mean squared error")
+    plt.grid()
+    if savefig:
+        plt.savefig(file)
+    plt.show()
+
+def nn_plot_iter_mse(train_mse_list,
+                     test_mse_list,
+                     iteration_list,
+                     num_ticks_per_epoch = 2,
+                     title = "",
+                     savefig = False,
+                     file = "../img/mse_per_iteration.png",
+                     ):
+
+    """ Function to plot the evolution of the mean squared error of the
+    neural network per iteration.
+
+
+    Parameters:
+
+    train_mse_list (list): Training MSEs.
+    test_mse_list (list): Test MSEs.
+    title (str): Title of the plot.
+    savefig (bool): Whether or not to save the plot.
+    file (str): Path and filename if savefig is True.
+
+
+    """
+
+    epoch_indices = np.array([i for i in range(len(iteration_list)) \
+                                  if "Batch: 1." in iteration_list[i]]) + 1
+    num_epochs = np.sum(["Batch: 1." in iteration_list[i] for i in range(len(iteration_list))])
+
+    ymin = np.min(np.min(train_mse_list), np.min(test_mse_list)) * 0.9
+    ymax = np.max(np.max(train_mse_list), np.max(test_mse_list)) * 1.1
+
+    xticks = np.linspace(start = 0,
+                         stop = len(iteration_list),
+                         num = num_epochs * num_ticks_per_epoch + 1)
+    xticks[0] = 1
+
+    plt.plot(np.arange(len(train_mse_list)) + 1, train_mse_list, label = "Training")
+    plt.plot(np.arange(len(test_mse_list)) + 1, test_mse_list, label = "Testing")
+    plt.vlines(x = epoch_indices,
+               ymin = ymin,
+               ymax = ymax,
+               color = "red",
+               linestyle = "dotted",
+               label = "Epochs"
+               )
+    plt.legend()
+    plt.title(title)
+    plt.xlabel("Iteration")
+    plt.ylabel("Mean Squared Error")
+    plt.xticks(ticks = xticks)
+    plt.grid()
+    if savefig:
+        plt.savefig(file)
+    plt.show()
+
+def nn_conf_mat(y_true,
+                y_pred,
+                plotting = True,
+                title = "",
+                savefig = False,
+                file = "../img/conf_mat.png"
+                ):
+
+    """ Function to get and plot the confusion matrix of a classificaton model.
+
+
+    Parameters:
+
+    y_true (list): True labels.
+    y_pred (list): Predicted labels.
+    plotting (bool): Whether or not to plot the confusion matrix.
+    title (str): Title of the plot.
+    savefig (bool): Whether or not to save the plot.
+    file (str): Path and filename if savefig is True.
+
+
+
+    Returns:
+
+    cm (np.ndarray): Confusion matrix.
+
+
+    """
+
+    labels = np.sort(np.unique(np.array(y_true)))
+
+    cm = confusion_matrix(y_true = y_true,
+                          y_pred = y_pred,
+                          labels = labels,
+                          normalize = "true")
+
+    if plotting:
+        plt.figure(figsize = (10, 8))
+        sns.heatmap(cm,
+                    cmap = "YlOrRd",
+                    annot = True,
+                    linewidths = 0.5,
+                    linecolor = "white",
+                    cbar = False)
+        plt.title(title)
+        plt.xticks(fontsize = 16)
+        plt.yticks(rotation = 0, fontsize = 16)
+        plt.xlabel("Predicted Label", fontsize = 20)
+        plt.ylabel("True Label", fontsize = 20)
+        if savefig:
+            plt.savefig(file)
+        plt.show()
+
+    return cm
