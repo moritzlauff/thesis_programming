@@ -47,6 +47,7 @@ def nn_plot_acc(model,
 def nn_plot_iter_acc(train_acc_list,
                      test_acc_list,
                      iteration_list,
+                     mean_comparison,
                      num_ticks_per_epoch = 2,
                      title = "",
                      savefig = False,
@@ -93,6 +94,11 @@ def nn_plot_iter_acc(train_acc_list,
                linestyle = "dotted",
                label = "Epochs"
                )
+    plt.hlines(y = mean_comparison,
+               xmin = 1,
+               xmax = len(iteration_list),
+               color = "black",
+               label = "Random guessing")
     plt.legend()
     plt.title(title)
     plt.xlabel("Iteration")
@@ -138,6 +144,7 @@ def nn_plot_mse(model,
 def nn_plot_iter_mse(train_mse_list,
                      test_mse_list,
                      iteration_list,
+                     mse_mean,          # model.evaluate(y_test, model.predict(X_test))[1]
                      num_ticks_per_epoch = 2,
                      title = "",
                      savefig = False,
@@ -180,6 +187,11 @@ def nn_plot_iter_mse(train_mse_list,
                linestyle = "dotted",
                label = "Epochs"
                )
+    plt.hlines(y = mse_mean,
+               xmin = 1,
+               xmax = len(iteration_list),
+               color = "black",
+               label = "Mean as prediction")
     plt.legend()
     plt.title(title)
     plt.xlabel("Iteration")
