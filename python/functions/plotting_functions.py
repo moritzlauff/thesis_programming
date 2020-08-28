@@ -35,6 +35,11 @@ def nn_plot_acc(model,
 
     plt.plot(np.array(model.history.epoch) + 1, model.history.history["accuracy"], label = "Training")
     plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_accuracy"], label = "Testing")
+    plt.hlines(y = 1 / model.layers[-1].output.shape[1],
+               xmin = 1,
+               xmax = len(np.array(model.history.epoch)),
+               color = "black",
+               label = "Random guessing")
     plt.legend()
     plt.title(title)
     plt.xlabel("Epoch")
@@ -111,6 +116,7 @@ def nn_plot_iter_acc(train_acc_list,
     plt.show()
 
 def nn_plot_mse(model,
+                mse_mean,       # mean_squared_error(y_test, np.ones(shape = (2607,))*np.mean(y_test))
                 title = "",
                 savefig = False,
                 file = "../img/mse.png"
@@ -132,6 +138,11 @@ def nn_plot_mse(model,
 
     plt.plot(np.array(model.history.epoch) + 1, model.history.history["mse"], label = "Training")
     plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_mse"], label = "Testing")
+    plt.hlines(y = mse_mean,
+               xmin = 1,
+               xmax = len(iteration_list),
+               color = "black",
+               label = "Mean as prediction")
     plt.legend()
     plt.title(title)
     plt.xlabel("Epoch")
@@ -144,7 +155,7 @@ def nn_plot_mse(model,
 def nn_plot_iter_mse(train_mse_list,
                      test_mse_list,
                      iteration_list,
-                     mse_mean,          # model.evaluate(y_test, model.predict(X_test))[1]
+                     mse_mean,          # mean_squared_error(y_test, np.ones(shape = (2607,))*np.mean(y_test))
                      num_ticks_per_epoch = 2,
                      title = "",
                      savefig = False,
