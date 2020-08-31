@@ -69,6 +69,8 @@ def nn_plot_iter_acc(train_acc_list,
 
     train_acc_list (list): Training accuracies.
     test_acc_list (list): Test accuracies.
+    iteration_list (list): Epoch and Batch enumeration.
+    mean_comparison (float): Accuracy when always guessing at random.
     title (str): Title of the plot.
     savefig (bool): Whether or not to save the plot.
     file (str): Path and filename if savefig is True.
@@ -83,9 +85,11 @@ def nn_plot_iter_acc(train_acc_list,
     if works: # weg, wenn die Accuracies besser werden
         ymin = 0
         ymax = 1
+        yticks = np.array([0, 0.2, 0.4, 0.6, 0.8, 1])
     else:
         ymin = 0.07
         ymax = 0.15
+        yticks = np.array([0, 0.1, 0.2])
 
     xticks = np.linspace(start = 0,
                          stop = len(iteration_list),
@@ -111,7 +115,7 @@ def nn_plot_iter_acc(train_acc_list,
     plt.xlabel("Iteration")
     plt.ylabel("Accuracy")
     plt.xticks(ticks = xticks)
-    plt.yticks(ticks = np.array([0, 0.2, 0.4, 0.6, 0.8, 1]))
+    plt.yticks(ticks = yticks)
     plt.grid()
     if savefig:
         plt.savefig(file)
@@ -131,6 +135,7 @@ def nn_plot_mse(model,
     Parameters:
 
     model (tensorflow.python.keras.engine.sequential.Sequential): Some fitted model.
+    mse_mean (float): MSE when always predicting the mean of the target.
     title (str): Title of the plot.
     savefig (bool): Whether or not to save the plot.
     file (str): Path and filename if savefig is True.
@@ -173,6 +178,8 @@ def nn_plot_iter_mse(train_mse_list,
 
     train_mse_list (list): Training MSEs.
     test_mse_list (list): Test MSEs.
+    iteration_list (list): Epoch and Batch enumeration.
+    mse_mean (float): MSE when always predicting the mean of the target.
     title (str): Title of the plot.
     savefig (bool): Whether or not to save the plot.
     file (str): Path and filename if savefig is True.

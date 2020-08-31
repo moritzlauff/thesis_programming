@@ -70,7 +70,7 @@ def bike_prep():
                                      "hr",
                                      "weathersit"])
 
-    bike = bike.sample(frac = 1).reset_index(drop = True)
+    bike = bike.sample(frac = 1)
 
     X = bike.drop("cnt", axis = 1)
     y = bike["cnt"]
@@ -86,6 +86,11 @@ def bike_prep():
 
     X_train, X_test, y_train, y_test = train_test_split(X, y,
                                                         test_size = 0.15)
+    
+    X_train = X_train.reset_index(drop = True)
+    X_test = X_test.reset_index(drop = True)
+    y_train = y_train.reset_index(drop = True)
+    y_test = y_test.reset_index(drop = True)
 
     return X_train, X_test, y_train, y_test
 
