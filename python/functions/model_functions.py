@@ -293,7 +293,7 @@ def nn_mse_pred_true(model,
 
     if print_comp:
         for i in range(len(y_pred)):
-            print("Prediction: {}, Actual: {}".format(y_pred[i],
+            print("Prediction: {}, Actual: {}".format(y_pred[i][0],
                                                       y_true[i]))
 
     return y_true, y_pred
