@@ -11,6 +11,9 @@ python/architecture/__pycache__
 # Python Cache
 .pyc
 
+# Excel files
+.xlsx
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
