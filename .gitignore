@@ -12,7 +12,7 @@ python/architecture/__pycache__
 .pyc
 
 # Excel files
-.xlsx
+*.xlsx
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
