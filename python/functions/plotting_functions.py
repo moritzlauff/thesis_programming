@@ -1,6 +1,7 @@
 # functions:
 #   nn_plot_acc
 #   nn_plot_iter_acc
+#   nn_plot_epoch_acc
 #   nn_plot_mse
 #   nn_plot_iter_mse
 #   nn_conf_mat
@@ -71,6 +72,7 @@ def nn_plot_iter_acc(train_acc_list,
     test_acc_list (list): Test accuracies.
     iteration_list (list): Epoch and Batch enumeration.
     mean_comparison (float): Accuracy when always guessing at random.
+    num_ticks_per_epoch (int): Number of grid ticks of the x axis per epoch.
     title (str): Title of the plot.
     savefig (bool): Whether or not to save the plot.
     file (str): Path and filename if savefig is True.
@@ -92,7 +94,7 @@ def nn_plot_iter_acc(train_acc_list,
         yticks = np.array([0, 0.1, 0.2])
 
     xticks = np.linspace(start = 0,
-                         stop = len(iteration_list),
+                         stop = len(iteration_list), # + 1 ?
                          num = num_epochs * num_ticks_per_epoch + 1)
     xticks[0] = 1
 
@@ -120,6 +122,47 @@ def nn_plot_iter_acc(train_acc_list,
     if savefig:
         plt.savefig(file)
     plt.show()
+
+def nn_plot_epoch_acc(train_acc_list,
+                      test_acc_list,
+                      mean_comparison,
+                      title = "",
+                      savefig = False,
+                      file = "../img/accuracy_per_epoch.png",
+                      works = False # weg, wenn die Accuracies besser werden
+                      ):
+
+    """ Function to plot the evolution of the accuracy of the neural network per iteration.
+
+
+    Parameters:
+
+    train_acc_list (list): Training accuracies.
+    test_acc_list (list): Test accuracies.
+    mean_comparison (float): Accuracy when always guessing at random.
+    title (str): Title of the plot.
+    savefig (bool): Whether or not to save the plot.
+    file (str): Path and filename if savefig is True.
+
+
+    """
+
+    plt.plot(np.arange(len(train_acc_list)) + 1, train_acc_list, label = "Training")
+    plt.plot(np.arange(len(test_acc_list)) + 1, test_acc_list, label = "Testing")
+    plt.hlines(y = mean_comparison,
+               xmin = 1,
+               xmax = len(train_acc_list),
+               color = "black",
+               label = "Random guessing")
+    plt.legend()
+    plt.title(title)
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
+    plt.grid()
+    if savefig:
+        plt.savefig(file)
+    plt.show()
+
 
 def nn_plot_mse(model,
                 mse_mean,       # mean_squared_error(y_test, np.ones(shape = (len(y_test),))*np.mean(y_test))
@@ -218,6 +261,46 @@ def nn_plot_iter_mse(train_mse_list,
     plt.xlabel("Iteration")
     plt.ylabel("Mean Squared Error")
     plt.xticks(ticks = xticks)
+    plt.grid()
+    if savefig:
+        plt.savefig(file)
+    plt.show()
+
+def nn_plot_epoch_mse(train_acc_list,
+                      test_acc_list,
+                      mse_mean, # mean_squared_error(y_test, np.ones(shape = (len(y_test),))*np.mean(y_test))
+                      title = "",
+                      savefig = False,
+                      file = "../img/accuracy_per_epoch.png"
+                      ):
+
+    """ Function to plot the evolution of the mean squared error of the
+    neural network per iteration.
+
+
+    Parameters:
+
+    train_mse_list (list): Training MSEs.
+    test_mse_list (list): Test MSEs.
+    mse_mean (float): MSE when always predicting the mean of the target.
+    title (str): Title of the plot.
+    savefig (bool): Whether or not to save the plot.
+    file (str): Path and filename if savefig is True.
+
+
+    """
+
+    plt.plot(np.arange(len(train_acc_list)) + 1, train_acc_list, label = "Training")
+    plt.plot(np.arange(len(test_acc_list)) + 1, test_acc_list, label = "Testing")
+    plt.hlines(y = mse_mean,
+               xmin = 1,
+               xmax = len(train_acc_list),
+               color = "black",
+               label = "Random guessing")
+    plt.legend()
+    plt.title(title)
+    plt.xlabel("Epoch")
+    plt.ylabel("Mean Squared Error")
     plt.grid()
     if savefig:
         plt.savefig(file)
