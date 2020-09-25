@@ -1,8 +1,6 @@
 import pandas as pd
 import tensorflow as tf
-import reproducible
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
 
 def mnist_prep():
 
@@ -22,7 +20,7 @@ def mnist_prep():
     (X_train, y_train), (X_test, y_test) = tf.keras.datasets.mnist.load_data()
     X_train = X_train.reshape(-1, 784).astype("float32") / 255.0
     X_test = X_test.reshape(-1, 784).astype("float32") / 255.0
-    
+
     scaler = StandardScaler()
     scaler.fit(X_train)
     X_train_scaled = scaler.transform(X_train)
@@ -37,8 +35,6 @@ import tensorflow
 from tensorflow.python.keras.layers import Dense
 from tensorflow.python.keras.models import Sequential
 import numpy as np
-import reproducible
-from training_callback import BatchAccuracy
 
 class NNError(Exception):
     pass
@@ -211,16 +207,16 @@ def nn_model_fit(model,
 
 import random
 import os
-import numpy as np
-import tensorflow as tf
 
 os.environ['PYTHONHASHSEED'] = '0'
 np.random.seed(42)
 random.seed(42)
-session_conf = tf.compat.v1.ConfigProto(intra_op_parallelism_threads = 1, inter_op_parallelism_threads = 1)
-tf.compat.v1.set_random_seed(42)
-sess = tf.compat.v1.Session(graph = tf.compat.v1.get_default_graph(), config = session_conf)
-tf.compat.v1.keras.backend.set_session(sess)
+session_conf = tensorflow.compat.v1.ConfigProto(intra_op_parallelism_threads = 1, inter_op_parallelism_threads = 1)
+tensorflow.compat.v1.set_random_seed(42)
+sess = tensorflow.compat.v1.Session(graph = tensorflow.compat.v1.get_default_graph(), config = session_conf)
+tensorflow.compat.v1.keras.backend.set_session(sess)
+
+
 X_train, X_val, y_train, y_val = mnist_prep()
 
 
@@ -254,7 +250,7 @@ early_stopping = False
 early_stopping_diff = 0.001
 batch_normal = False # evtl. noch einbauen, obwohl im Paper nicht gemacht (aber Achtung mit den Dimensionen unten!!!)
 shuffle = True
-randomization = True
+randomization = False
 
 layers = 5
 neurons = [128, 128, 64, 32, 10]
@@ -301,11 +297,11 @@ for i in range(particles):
                              optimizer = "sgd")
     # for every particle write the model in a dictionary
     model_dict["model_{}".format(str(i+1))] = model
-    
+
     # for every particles write the weights and biases in a dictionary
     weights_dict["model_{}".format(str(i+1))] = model_dict["model_{}".format(str(i+1))]\
                                                     .get_weights()
-    
+
     train_acc_dict["model_{}".format(str(i+1))] = []
     test_acc_dict["model_{}".format(str(i+1))] = []
     iteration_dict["model_{}".format(str(i+1))] = []
@@ -318,9 +314,6 @@ mean_model.set_weights(mean_weights)
 mean_model_train_acc = np.array(mean_model.evaluate(X_train, y_train)[1])
 mean_model_test_acc = np.array(mean_model.evaluate(X_test, y_test)[1])
 
-for i in range(particles):
-    print(model_dict["model_{}".format(str(i+1))].evaluate(X_val_small, y_val_small)[1])
-
 import time
 start_time = time.time()
 
@@ -330,52 +323,53 @@ for epoch in range(epochs):
     if shuffle:
         indices = y_train.sample(frac=1).index
         X_batches = [X_train[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
-        y_batches = [y_train.iloc[indices].reset_index(drop = True)[int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]   
+        y_batches = [y_train.iloc[indices].reset_index(drop = True)[int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
     # loop over all batches
-    for b in range(num_batches):    
+    for b in range(num_batches):
         for i in range(particles):
             # set new weights for model
             model_dict["model_{}".format(str(i+1))].set_weights(weights_dict["model_{}".format(str(i+1))])
-            
+
             # for every particle write the predictions on the training batches in a dictionary
             y_pred_dict["model_{}".format(str(i+1))] = model_dict["model_{}".format(str(i+1))]\
                                                             .predict(X_batches[b])
 
             # for every particle write the Jacobian in a dictionary
-            jacobian_dict["model_{}".format(str(i+1))] = (-1) * np.multiply(np.array(y_batches[b]), 
+            jacobian_dict["model_{}".format(str(i+1))] = (-1) * np.multiply(np.array(y_batches[b]),
                                                                             np.array(1 / (y_pred_dict["model_{}".format(str(i+1))] + delta)))
-            
+
             # for every particle write the training accuracy of the current iteration in a dictionary
             train_acc_dict["model_{}".format(str(i+1))].append(model_dict["model_{}".format(str(i+1))]\
                                                                       .evaluate(X_train, y_train, verbose = 0)[1])
-            
+
             # for every particle write the test accuracy of the current iteration in a dictionary
             test_acc_dict["model_{}".format(str(i+1))].append(model_dict["model_{}".format(str(i+1))]\
                                                                       .evaluate(X_test, y_test, verbose = 0)[1])
-            
+
             # for every particle write the current iteration in a dictionary
             iteration_dict["model_{}".format(str(i+1))].append("Epoch: {}, Batch: {}.".format(epoch+1, b+1))
-            
+
         # compute the mean of the predictions
         y_pred_mean = np.mean(list(y_pred_dict.values()), axis = 0)
-        
+
         # compute the matrix D elementwise
         d = np.zeros(shape = (particles, particles))
         for k in range(particles):
             y_pred_centered = y_pred_dict["model_{}".format(str(k+1))] - y_pred_mean
             for j in range(particles):
                 d[k][j] = np.sum(np.multiply(y_pred_centered, jacobian_dict["model_{}".format(str(j+1))]))
-                                       
+        d = np.transpose(d)
+
         # compute the scalar h_t
         h_t = h_0 / (np.sqrt(np.sum(d**2)) + epsilon)
-        
+
         # Reshape the weights and biases so that they are no longer matrices and vectores, but now one single vector
         for i in range(particles):
             weights_array = np.array([])
             for j in range(len(weights_dict["model_{}".format(str(i+1))])):
                 weights_array = np.append(weights_array, np.reshape(weights_dict["model_{}".format(str(i+1))][j], (1, -1)).ravel())
             weights_vector_dict["model_{}".format(str(i+1))] = weights_array
-          
+
         # matrix with particle parameters as row vectors
         weights_all_ptcls = np.array(list(weights_vector_dict.values()))
 
@@ -407,7 +401,7 @@ for epoch in range(epochs):
                                              size = tuple(shapes[s]))
                     new_weights.append(weights_dict["model_{}".format(str(i+1))][s] + noise)
                 weights_dict["model_{}".format(str(i+1))] = new_weights
-                
+
     if randomization:
         # randomize particles around their mean
         weights_mean = list(np.mean(list(weights_dict.values()), axis = 0))
@@ -427,14 +421,14 @@ for epoch in range(epochs):
                                          size = tuple(shapes[s]))
                 new_weights.append(weights_mean[s] + noise)
             weights_dict["model_{}".format(str(i+1))] = new_weights
-            
+
     # update the mean_model
     mean_weights = list(np.mean(list(weights_dict.values()), axis = 0))
     mean_model.set_weights(mean_weights)
-    
+
     mean_model_train_acc = np.append(mean_model_train_acc, np.array(mean_model.evaluate(X_train, y_train, verbose = 0)[1]))
     mean_model_test_acc = np.append(mean_model_test_acc, np.array(mean_model.evaluate(X_test, y_test, verbose = 0)[1]))
-    
+
     # early stopping
     if early_stopping:
         if epoch == 0:
@@ -449,9 +443,6 @@ for epoch in range(epochs):
 
 end_time = time.time()
 print("Calculation time: {}".format(end_time - start_time))
-
-for i in range(particles):
-    print(model_dict["model_{}".format(str(i+1))].evaluate(X_val_small, y_val_small)[1])
 
 print(mean_model_train_acc)
 print(mean_model_test_acc)
