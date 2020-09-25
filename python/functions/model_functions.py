@@ -196,7 +196,7 @@ def nn_save(model,
     Parameters:
 
     model (tensorflow.python.keras.engine.sequential.Sequential): Some fitted model.
-    path_name (str): Where to save and under which name.
+    path_name (str): Where to save and under which name. Must be a .h5-file.
 
 
     """
@@ -210,7 +210,7 @@ def nn_load(path_name):
 
     Parameters:
 
-    path_name (str): Where to find the model.
+    path_name (str): Where to find the model. Is a .h5-file.
 
 
 
