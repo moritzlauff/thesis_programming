@@ -129,8 +129,7 @@ def nn_plot_epoch_acc(train_acc_list,
                       mean_comparison,
                       title = "",
                       savefig = False,
-                      file = "../img/accuracy_per_epoch.png",
-                      works = False # weg, wenn die Accuracies besser werden
+                      file = "../img/accuracy_per_epoch.png"
                       ):
 
     """ Function to plot the evolution of the accuracy of the neural network per iteration.
