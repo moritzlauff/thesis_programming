@@ -4,6 +4,7 @@
 #   nn_plot_epoch_acc
 #   nn_plot_mse
 #   nn_plot_iter_mse
+#   nn_plot_epoch_mse
 #   nn_conf_mat
 
 import sys
