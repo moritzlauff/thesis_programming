@@ -122,12 +122,14 @@ def enkf_classifier(X_train,
         # early stopping
         if early_stopping:
             if epoch == 0:
+                train_acc_old = 0
                 test_acc_old = 0
             else:
+                train_acc_new = mean_model_train_acc[epoch]
                 test_acc_new = mean_model_test_acc[epoch]
-                if np.absolute(test_acc_new - test_acc_old) <= early_stopping_diff:
-                    print("STOP: Early Stopping after epoch {} because improvement in test accuracy is only {}."\
-                                                                         .format(epoch+1, test_acc_new - test_acc_old))
+                if np.absolute(test_acc_new - test_acc_old) <= early_stopping_diff and np.absolute(train_acc_new - train_acc_old) <= early_stopping_diff:
+                    print("STOP: Early Stopping after epoch {} because improvement in training accuracy is only {} and in test accuracy only {}."\
+                                                                         .format(epoch+1, train_acc_new - train_acc_old, test_acc_new - test_acc_old))
                     return mean_model, mean_model_train_acc, mean_model_test_acc
                 test_acc_old = test_acc_new
         # shuffle the data
