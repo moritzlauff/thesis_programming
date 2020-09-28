@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 import reproducible
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
-from sklearn.metrics import mean_squared_error
 
 def nn_plot_acc(model,
                 title = "",
@@ -36,6 +35,7 @@ def nn_plot_acc(model,
 
     """
 
+    plt.figure(figsize = (8,5))
     plt.plot(np.array(model.history.epoch) + 1, model.history.history["accuracy"], label = "Training")
     plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_accuracy"], label = "Testing")
     plt.hlines(y = 1 / model.layers[-1].output.shape[1],
@@ -48,6 +48,7 @@ def nn_plot_acc(model,
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
     plt.xticks(ticks = np.array(model.history.epoch) + 1)
+    plt.yticks(ticks = np.array([0, 0.2, 0.4, 0.6, 0.8, 1]))
     plt.grid()
     if savefig:
         plt.savefig(file)
@@ -60,8 +61,7 @@ def nn_plot_iter_acc(train_acc_list,
                      num_ticks_per_epoch = 2,
                      title = "",
                      savefig = False,
-                     file = "../img/accuracy_per_iteration.png",
-                     works = False # weg, wenn die Accuracies besser werden
+                     file = "../img/accuracy_per_iteration.png"
                      ):
 
     """ Function to plot the evolution of the accuracy of the neural network per iteration.
@@ -85,25 +85,20 @@ def nn_plot_iter_acc(train_acc_list,
                                   if "Batch: 1." in iteration_list[i]]) + 1
     num_epochs = np.sum(["Batch: 1." in iteration_list[i] for i in range(len(iteration_list))])
 
-    if works: # weg, wenn die Accuracies besser werden
-        ymin = 0
-        ymax = 1
-        yticks = np.array([0, 0.2, 0.4, 0.6, 0.8, 1])
-    else:
-        ymin = 0.07
-        ymax = 0.15
-        yticks = np.array([0, 0.1, 0.2])
+
+    yticks = np.array([0, 0.2, 0.4, 0.6, 0.8, 1])
 
     xticks = np.linspace(start = 0,
                          stop = len(iteration_list), # + 1 ?
                          num = num_epochs * num_ticks_per_epoch + 1)
     xticks[0] = 1
 
+    plt.figure(figsize = (8,5))
     plt.plot(np.arange(len(train_acc_list)) + 1, train_acc_list, label = "Training")
     plt.plot(np.arange(len(test_acc_list)) + 1, test_acc_list, label = "Testing")
     plt.vlines(x = epoch_indices,
-               ymin = ymin, # das muss noch auf 0 gesetzt werden, wenn die Accuracies besser werden
-               ymax = ymax, # das muss noch auf 1 gesetzt werden, wenn die Accuracies besser werden
+               ymin = 0,
+               ymax = 1,
                color = "red",
                linestyle = "dotted",
                label = "Epochs"
@@ -147,17 +142,24 @@ def nn_plot_epoch_acc(train_acc_list,
 
     """
 
-    plt.plot(np.arange(len(train_acc_list)) + 1, train_acc_list, label = "Training")
-    plt.plot(np.arange(len(test_acc_list)) + 1, test_acc_list, label = "Testing")
+    xticks = np.linspace(start = 0,
+                         stop = len(train_acc_list) - 1,
+                         num = int((len(train_acc_list) - 1) / 5 + 1))
+
+    plt.figure(figsize = (8,5))
+    plt.plot(np.arange(len(train_acc_list)), train_acc_list, label = "Training")
+    plt.plot(np.arange(len(test_acc_list)), test_acc_list, label = "Testing")
     plt.hlines(y = mean_comparison,
-               xmin = 1,
-               xmax = len(train_acc_list),
+               xmin = 0,
+               xmax = len(train_acc_list) - 1,
                color = "black",
                label = "Random guessing")
     plt.legend()
     plt.title(title)
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
+    plt.xticks(ticks = xticks)
+    plt.yticks(np.array([0, 0.2, 0.4, 0.6, 0.8, 1]))
     plt.grid()
     if savefig:
         plt.savefig(file)
@@ -186,6 +188,7 @@ def nn_plot_mse(model,
 
     """
 
+    plt.figure(figsize = (8,5))
     plt.plot(np.array(model.history.epoch) + 1, model.history.history["mse"], label = "Training")
     plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_mse"], label = "Testing")
     plt.hlines(y = mse_mean,
@@ -230,6 +233,7 @@ def nn_plot_iter_mse(train_mse_list,
 
     """
 
+    plt.figure(figsize = (8,5))
     epoch_indices = np.array([i for i in range(len(iteration_list)) \
                                   if "Batch: 1." in iteration_list[i]]) + 1
     num_epochs = np.sum(["Batch: 1." in iteration_list[i] for i in range(len(iteration_list))])
@@ -266,8 +270,8 @@ def nn_plot_iter_mse(train_mse_list,
         plt.savefig(file)
     plt.show()
 
-def nn_plot_epoch_mse(train_acc_list,
-                      test_acc_list,
+def nn_plot_epoch_mse(train_mse_list,
+                      test_mse_list,
                       mse_mean, # mean_squared_error(y_test, np.ones(shape = (len(y_test),))*np.mean(y_test))
                       title = "",
                       savefig = False,
@@ -290,17 +294,23 @@ def nn_plot_epoch_mse(train_acc_list,
 
     """
 
-    plt.plot(np.arange(len(train_acc_list)) + 1, train_acc_list, label = "Training")
-    plt.plot(np.arange(len(test_acc_list)) + 1, test_acc_list, label = "Testing")
+    xticks = np.linspace(start = 0,
+                         stop = len(train_mse_list) - 1,
+                         num = int((len(train_mse_list) - 1) / 5 + 1))
+
+    plt.figure(figsize = (8,5))
+    plt.plot(np.arange(len(train_mse_list)) , train_mse_list, label = "Training")
+    plt.plot(np.arange(len(test_mse_list)), test_mse_list, label = "Testing")
     plt.hlines(y = mse_mean,
-               xmin = 1,
-               xmax = len(train_acc_list),
+               xmin = 0,
+               xmax = len(train_mse_list) - 1,
                color = "black",
                label = "Random guessing")
     plt.legend()
     plt.title(title)
     plt.xlabel("Epoch")
     plt.ylabel("Mean Squared Error")
+    plt.xticks(ticks = xticks)
     plt.grid()
     if savefig:
         plt.savefig(file)
