@@ -43,7 +43,7 @@ def nn_plot_acc(model,
                xmax = len(np.array(model.history.epoch)),
                color = "black",
                label = "Random guessing")
-    plt.legend()
+    plt.legend(loc = "lower right")
     plt.title(title)
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
@@ -108,7 +108,7 @@ def nn_plot_iter_acc(train_acc_list,
                xmax = len(iteration_list),
                color = "black",
                label = "Random guessing")
-    plt.legend()
+    plt.legend(loc = "lower right")
     plt.title(title)
     plt.xlabel("Iteration")
     plt.ylabel("Accuracy")
@@ -154,7 +154,7 @@ def nn_plot_epoch_acc(train_acc_list,
                xmax = len(train_acc_list) - 1,
                color = "black",
                label = "Random guessing")
-    plt.legend()
+    plt.legend(loc = "lower right")
     plt.title(title)
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
@@ -196,7 +196,7 @@ def nn_plot_mse(model,
                xmax = len(np.array(model.history.epoch)),
                color = "black",
                label = "Mean as prediction")
-    plt.legend()
+    plt.legend(loc = "upper right")
     plt.title(title)
     plt.xlabel("Epoch")
     plt.ylabel("Mean squared error")
@@ -260,7 +260,7 @@ def nn_plot_iter_mse(train_mse_list,
                xmax = len(iteration_list),
                color = "black",
                label = "Mean as prediction")
-    plt.legend()
+    plt.legend(loc = "upper right")
     plt.title(title)
     plt.xlabel("Iteration")
     plt.ylabel("Mean Squared Error")
@@ -306,7 +306,7 @@ def nn_plot_epoch_mse(train_mse_list,
                xmax = len(train_mse_list) - 1,
                color = "black",
                label = "Random guessing")
-    plt.legend()
+    plt.legend(loc = "upper right")
     plt.title(title)
     plt.xlabel("Epoch")
     plt.ylabel("Mean Squared Error")
