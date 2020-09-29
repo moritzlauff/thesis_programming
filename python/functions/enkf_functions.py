@@ -27,7 +27,7 @@ def enkf_classifier(X_train,
                     early_stopping_diff = 0.001
                     ):
 
-    """ Function to define the structure of a neural network.
+    """ Ensemble Kalman Filter algorithm for classification problem.
 
 
     Parameters:
