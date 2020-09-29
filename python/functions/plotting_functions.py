@@ -36,8 +36,8 @@ def nn_plot_acc(model,
     """
 
     plt.figure(figsize = (8,5))
-    plt.plot(np.array(model.history.epoch) + 1, model.history.history["accuracy"], label = "Training")
-    plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_accuracy"], label = "Testing")
+    plt.plot(np.array(model.history.epoch) + 1, model.history.history["accuracy"], label = "Training", marker = "s")
+    plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_accuracy"], label = "Testing", marker = "s")
     plt.hlines(y = 1 / model.layers[-1].output.shape[1],
                xmin = 1,
                xmax = len(np.array(model.history.epoch)),
@@ -147,8 +147,8 @@ def nn_plot_epoch_acc(train_acc_list,
                          num = int((len(train_acc_list) - 1) / 5 + 1))
 
     plt.figure(figsize = (8,5))
-    plt.plot(np.arange(len(train_acc_list)), train_acc_list, label = "Training")
-    plt.plot(np.arange(len(test_acc_list)), test_acc_list, label = "Testing")
+    plt.plot(np.arange(len(train_acc_list)), train_acc_list, label = "Training", marker = "s")
+    plt.plot(np.arange(len(test_acc_list)), test_acc_list, label = "Testing", marker = "s")
     plt.hlines(y = mean_comparison,
                xmin = 0,
                xmax = len(train_acc_list) - 1,
@@ -189,8 +189,8 @@ def nn_plot_mse(model,
     """
 
     plt.figure(figsize = (8,5))
-    plt.plot(np.array(model.history.epoch) + 1, model.history.history["mse"], label = "Training")
-    plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_mse"], label = "Testing")
+    plt.plot(np.array(model.history.epoch) + 1, model.history.history["mse"], label = "Training", marker = "s")
+    plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_mse"], label = "Testing", marker = "s")
     plt.hlines(y = mse_mean,
                xmin = 1,
                xmax = len(np.array(model.history.epoch)),
@@ -299,8 +299,8 @@ def nn_plot_epoch_mse(train_mse_list,
                          num = int((len(train_mse_list) - 1) / 5 + 1))
 
     plt.figure(figsize = (8,5))
-    plt.plot(np.arange(len(train_mse_list)) , train_mse_list, label = "Training")
-    plt.plot(np.arange(len(test_mse_list)), test_mse_list, label = "Testing")
+    plt.plot(np.arange(len(train_mse_list)) , train_mse_list, label = "Training", marker = "s")
+    plt.plot(np.arange(len(test_mse_list)), test_mse_list, label = "Testing", marker = "s")
     plt.hlines(y = mse_mean,
                xmin = 0,
                xmax = len(train_mse_list) - 1,
