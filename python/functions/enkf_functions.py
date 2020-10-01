@@ -29,7 +29,8 @@ def enkf_classifier(X_train,
                     early_stopping_diff = 0.001,
                     save_all = False,
                     file_var = "file.pckl",
-                    file_model = "file.h5"
+                    file_model = "file.h5",
+                    verbose = 0
                     ):
 
     """ Ensemble Kalman Filter algorithm for classification problem.
@@ -250,6 +251,11 @@ def enkf_classifier(X_train,
 
         mean_model_train_acc = np.append(mean_model_train_acc, np.array(mean_model.evaluate(X_train, y_train, verbose = 0)[1]))
         mean_model_test_acc = np.append(mean_model_test_acc, np.array(mean_model.evaluate(X_test, y_test, verbose = 0)[1]))
+
+        if verbose == 1:
+            print("Epoch {}. Training Accuracy: {}, Test Accuracy: {}.".format(epoch+1,
+                                                                               np.round(mean_model_train_acc[-1], 3),
+                                                                               np.round(mean_model_test_acc[-1], 3)))
 
     if save_all:
         param_dict = param_to_dict(X_train,
