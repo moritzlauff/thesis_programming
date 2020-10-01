@@ -24,6 +24,19 @@ def param_to_dict(X_train,
                   early_stopping_diff
                   ):
 
+    """ Function to write some objects into a dictionary.
+
+
+    Parameters:
+
+        Inputs of enkf_classifier.
+
+    Returns:
+
+        param_dict (dict): Dictionary containing the inputs.
+
+    """
+
     param_dict = {}
     param_dict["X_train"] = X_train
     param_dict["X_test"] = X_test
@@ -51,6 +64,19 @@ def results_to_dict(mean_model_train_acc,
                     weights_dict,
                     y_pred_dict
                     ):
+
+    """ Function to write some objects into a dictionary.
+
+
+    Parameters:
+
+        Outputs of enkf_classifier.
+
+    Returns:
+
+        results_dict (dict): Dictionary containing the outputs.
+
+    """
 
     results_dict = {}
     results_dict["mean_model_train_acc"] = mean_model_train_acc
