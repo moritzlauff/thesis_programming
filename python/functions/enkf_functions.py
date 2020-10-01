@@ -6,8 +6,10 @@ import sys
 sys.path.insert(1, "../architecture")
 
 import reproducible
-from model_functions import nn_model_structure, nn_model_compile
+import no_gpu
+from model_functions import nn_model_structure, nn_model_compile, nn_save
 import numpy as np
+from saving_functions import param_to_dict, results_to_dict, save_objects
 
 def enkf_classifier(X_train,
                     X_test,
@@ -24,7 +26,10 @@ def enkf_classifier(X_train,
                     randomization = False,
                     shuffle = True,
                     early_stopping = False,
-                    early_stopping_diff = 0.001
+                    early_stopping_diff = 0.001,
+                    save_all = False,
+                    file_var = "file.pckl",
+                    file_model = "file.h5"
                     ):
 
     """ Ensemble Kalman Filter algorithm for classification problem.
@@ -48,6 +53,9 @@ def enkf_classifier(X_train,
     shuffle (bool): Whether or not to shuffle the data prior to each epoch.
     early_stopping (bool): Whether or not to stop the calculation when the changes get small.
     early_stopping_diff (bool): Minimum change before early stopping is applied.
+    save_all (bool): Whether or not to save all important variables and models.
+    file_var (str): Path and name of the file to save variables into.
+    file_model (str): Path and name of the file to save the final model into.
 
 
     Returns:
@@ -242,5 +250,41 @@ def enkf_classifier(X_train,
 
         mean_model_train_acc = np.append(mean_model_train_acc, np.array(mean_model.evaluate(X_train, y_train, verbose = 0)[1]))
         mean_model_test_acc = np.append(mean_model_test_acc, np.array(mean_model.evaluate(X_test, y_test, verbose = 0)[1]))
+
+    if save_all:
+        param_dict = param_to_dict(X_train,
+                                   X_test,
+                                   y_train,
+                                   y_test,
+                                   layers,
+                                   neurons,
+                                   particles,
+                                   epochs,
+                                   batch_size,
+                                   h_0,
+                                   delta,
+                                   epsilon,
+                                   randomization,
+                                   shuffle,
+                                   early_stopping,
+                                   early_stopping_diff
+                                   )
+        results_dict = results_to_dict(mean_model_train_acc,
+                                       mean_model_test_acc,
+                                       train_acc_dict,
+                                       test_acc_dict,
+                                       weights_dict,
+                                       y_pred_dict
+                                       )
+
+        saving_dict = {}
+        saving_dict["parameters"] = param_dict
+        saving_dict["results"] = results_dict
+
+        save_objects(obj_dict = saving_dict,
+                     file = file_var)
+
+        nn_save(model = mean_model,
+                path_name = file_model)
 
     return mean_model, mean_model_train_acc, mean_model_test_acc
