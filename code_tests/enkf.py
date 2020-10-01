@@ -246,9 +246,6 @@ y_test = y_val_small
 batch_size = 50
 epochs = 10
 particles = 10
-early_stopping = False
-early_stopping_diff = 0.001
-batch_normal = False # evtl. noch einbauen, obwohl im Paper nicht gemacht (aber Achtung mit den Dimensionen unten!!!)
 shuffle = True
 randomization = False
 
@@ -311,8 +308,8 @@ mean_weights = list(np.mean(list(weights_dict.values()), axis = 0))
 mean_model = init_model
 mean_model.set_weights(mean_weights)
 
-mean_model_train_acc = np.array(mean_model.evaluate(X_train, y_train)[1])
-mean_model_test_acc = np.array(mean_model.evaluate(X_test, y_test)[1])
+mean_model_train_acc = np.array(mean_model.evaluate(X_train, y_train, verbose = 0)[1])
+mean_model_test_acc = np.array(mean_model.evaluate(X_test, y_test, verbose = 0)[1])
 
 import time
 start_time = time.time()
@@ -428,18 +425,6 @@ for epoch in range(epochs):
 
     mean_model_train_acc = np.append(mean_model_train_acc, np.array(mean_model.evaluate(X_train, y_train, verbose = 0)[1]))
     mean_model_test_acc = np.append(mean_model_test_acc, np.array(mean_model.evaluate(X_test, y_test, verbose = 0)[1]))
-
-    # early stopping
-    if early_stopping:
-        if epoch == 0:
-            test_acc_old = 0
-        else:
-            test_acc_new = mean_model_test_acc[epoch]
-            if np.absolute(test_acc_new - test_acc_old) <= early_stopping_diff:
-                print("STOP: Early Stopping after epoch {} because improvement in test accuracy is only {}."\
-                                                                     .format(epoch+1, test_acc_new - test_acc_old))
-                break
-            test_acc_old = test_acc_new
 
 end_time = time.time()
 print("Calculation time: {}".format(end_time - start_time))
