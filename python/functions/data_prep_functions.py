@@ -1,11 +1,13 @@
 # functions:
 #   mnist_prep
 #   bike_prep
+#   connect4_prep
 
 import sys
 sys.path.insert(1, "../architecture")
 
 import pandas as pd
+import numpy as np
 import tensorflow as tf
 import reproducible
 from sklearn.preprocessing import StandardScaler
@@ -94,15 +96,45 @@ def bike_prep():
 
     return X_train, X_test, y_train, y_test
 
+def connect4_prep():
+
+    """ Function to prepare the connect_4 dataset to use for modeling.
 
 
+    Parameters:
+
+    Returns:
+
+    X_train_onehot (np.ndarray): Training data X.
+    X_test_onehot (np.ndarray): Test data X.
+    y_train_onehot (pd.DataFrame): Training data y.
+    y_val_onehot (pd.DataFrame): Test data y.
+
+    """
+
+    df = pd.read_csv("../data/connect_4/connect_4.csv")
+
+    df = df.dropna()
+
+    df[df == -1] = "1"
+    df[df == 1] = "2"
+    df[df == 0] = "blank"
+    df["winner"][df["winner"] == "blank"] = "draw"
+
+    X = df.drop("winner", axis = 1)
+    y = df["winner"]
 
 
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.15, stratify = y)
 
+    X_train = pd.get_dummies(X_train)
+    X_test = pd.get_dummies(X_test)
+    y_train = pd.get_dummies(y_train)
+    y_test = pd.get_dummies(y_test)
 
+    X_train = np.array(X_train.reset_index(drop = True))
+    X_test = np.array(X_test.reset_index(drop = True))
+    y_train = y_train.reset_index(drop = True)
+    y_test = y_test.reset_index(drop = True)
 
-
-
-
-
-
+    return X_train, X_test, y_train, y_test
