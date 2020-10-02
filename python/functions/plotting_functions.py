@@ -6,6 +6,11 @@
 #   nn_plot_iter_mse
 #   nn_plot_epoch_mse
 #   nn_conf_mat
+#   plot_IP_loss_evolution
+#   plot_IP_loss_evolution_many
+#   plot_IP_true_false
+#   plot_IP_particle_loss
+#   plot_IP_particle_std
 
 import sys
 sys.path.insert(1, "../architecture")
@@ -15,6 +20,7 @@ import matplotlib.pyplot as plt
 import reproducible
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
+from enkf_functions import enkf_inverse_problem
 
 def nn_plot_acc(model,
                 title = "",
@@ -370,3 +376,150 @@ def nn_conf_mat(y_true,
         plt.show()
 
     return cm
+
+def plot_IP_loss_evolution(loss_evolution,
+                           start_epoch = 0):
+
+
+    """ Plot the evolution of the loss (for linear or nonlinear inverse problem).
+
+
+    Parameters:
+
+    loss_evolution (list): Evolution of the loss value over each iteration.
+    start_epoch (int): First epoch to be plotted. Helpful for large difference in first and last loss value.
+
+
+    """
+
+    plt.figure(figsize = (8,5))
+    plt.plot(np.arange(len(loss_evolution))[start_epoch:],
+             loss_evolution[start_epoch:],
+             marker = "s")
+    plt.grid()
+    plt.xlabel("Iteration")
+    plt.ylabel("Mean Squared Error")
+    plt.xticks(ticks = np.arange(0, len(loss_evolution), 5))
+    plt.show()
+
+def plot_IP_loss_evolution_many(setting_dict,
+                                particle_list,
+                                start_epoch = 0):
+
+
+    """ Plot the evolution of the loss (for linear or nonlinear inverse problem).
+
+
+    Parameters:
+
+    setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems.
+    particle_list (list): Different numbers of particles.
+    start_epoch (int): First epoch to be plotted. Helpful for large difference in first and last loss value.
+
+
+    """
+
+    particles = particle_list
+
+    loss_evolution_dict = {}
+
+    for i in range(len(particles)):
+        _, loss_evolution_particles, _ = enkf_inverse_problem(setting_dict)
+        loss_evolution_dict["P{}".format(particles[i])] = loss_evolution_particles
+
+    plt.figure(figsize = (8,5))
+    for i in range(len(loss_evolution_dict)):
+        plt.plot(np.arange(len(list(loss_evolution_dict.values())[i]))[start_epoch:],
+                 list(loss_evolution_dict.values())[i][start_epoch:],
+                 label = list(loss_evolution_dict.keys())[i])
+    plt.grid()
+    plt.xlabel("Iteration")
+    plt.ylabel("Mean Squared Error")
+    plt.legend(loc = "upper right")
+    plt.xticks(ticks = np.arange(0, len(list(loss_evolution_dict.values())[0]), 5))
+    plt.show()
+
+def plot_IP_true_false(setting_dict,
+                       final_params
+                       ):
+
+    """ Plot the true and the predicted values of the target variable (for linear or nonlinear inverse problem).
+
+
+    Parameters:
+
+        setting_dict (dict): Dictionary containing
+            model_func (function): Function to apply to x.
+            x (np.array): True parameters.
+            y (np.array): True target variables.
+        final_params (np.ndarray): Predicted parameters.
+
+
+    """
+
+    model_func = setting_dict["model_func"]
+    x = setting_dict["x"]
+    y = setting_dict["y"]
+
+    plt.figure(figsize = (8,6))
+    plt.scatter(x, y, color = "blue", s = 200, alpha = 0.5, label = "True")
+    plt.scatter(x, model_func(final_params), color = "red", s = 30, label = "Predicted")
+    plt.legend(loc = "upper right")
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.show()
+
+def plot_IP_particle_loss(loss_evolution,
+                          loss_evolution_single_dict):
+
+    """ Plot the final loss of all particles (for linear or nonlinear inverse problem).
+
+
+    Parameters:
+
+    loss_evolution (list): Evolution of the loss value over each iteration.
+    loss_evolution_single_dict (dict): Evolutions of loss values of all particles.
+
+    """
+
+    final_mse = [mse[-1] for mse in list(loss_evolution_single_dict.values())]
+
+    plt.figure(figsize = (8,5))
+    plt.scatter(np.arange(len(final_mse))+1, final_mse, alpha = 0.5, label = "Particle")
+    plt.hlines(y = loss_evolution[-1], xmin = 1, xmax = len(final_mse), color = "black", label = "Mean Particle")
+    plt.xticks([], [])
+    plt.legend(loc = "upper right")
+    plt.ylabel("Mean Squared Error")
+    plt.ylim(bottom = np.min([np.min(final_mse), loss_evolution[-1]])*0.9,
+             top = np.max([np.max(final_mse), loss_evolution[-1]])*1.1)
+    plt.show()
+
+def plot_IP_particle_std(setting_dict,
+                         particle_list):
+
+    """ Plot the evolution of the standard deviation od the final losses of all particles (for linear or nonlinear inverse problem).
+
+
+    Parameters:
+
+    setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems.
+    particle_list (list): Different numbers of particles.
+
+    """
+
+    particles = particle_list
+
+    loss_final_std_dict = {}
+
+    for i in range(len(particles)):
+        _, _, loss_evolution_single_dict = enkf_inverse_problem(setting_dict)
+        loss_final_std_dict["P{}".format(particles[i])] = np.std([list(loss_evolution_single_dict.values())[j][-1] for j in range(len(loss_evolution_single_dict))])
+
+    xticks = [int(list(loss_final_std_dict.keys())[i].split("P")[1]) for i in range(len(loss_final_std_dict))]
+
+    plt.plot(xticks, list(loss_final_std_dict.values()), marker = "s")
+    plt.xlabel("Number of particles")
+    plt.ylabel("Standard deviation of final MSE")
+    plt.xticks(ticks = xticks)
+    plt.grid()
+    plt.show()
