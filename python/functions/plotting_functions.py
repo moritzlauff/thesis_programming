@@ -173,7 +173,7 @@ def nn_plot_epoch_acc(train_acc_list,
 
 
 def nn_plot_mse(model,
-                mse_mean,       # mean_squared_error(y_test, np.ones(shape = (len(y_test),))*np.mean(y_test))
+                mse_mean,       # mean_squared_error(y_train, np.ones(shape = (len(y_train),))*np.mean(y_train))
                 title = "",
                 savefig = False,
                 file = "../img/mse.png"
@@ -205,7 +205,7 @@ def nn_plot_mse(model,
     plt.legend(loc = "upper right")
     plt.title(title)
     plt.xlabel("Epoch")
-    plt.ylabel("Mean squared error")
+    plt.ylabel("Mean Squared Error")
     plt.xticks(ticks = np.array(model.history.epoch) + 1)
     plt.grid()
     if savefig:
@@ -215,7 +215,7 @@ def nn_plot_mse(model,
 def nn_plot_iter_mse(train_mse_list,
                      test_mse_list,
                      iteration_list,
-                     mse_mean,          # mean_squared_error(y_test, np.ones(shape = (len(y_test),))*np.mean(y_test))
+                     mse_mean,          # mean_squared_error(y_train, np.ones(shape = (len(y_train),))*np.mean(y_train))
                      num_ticks_per_epoch = 2,
                      title = "",
                      savefig = False,
@@ -278,7 +278,7 @@ def nn_plot_iter_mse(train_mse_list,
 
 def nn_plot_epoch_mse(train_mse_list,
                       test_mse_list,
-                      mse_mean, # mean_squared_error(y_test, np.ones(shape = (len(y_test),))*np.mean(y_test))
+                      mse_mean, # mean_squared_error(y_train, np.ones(shape = (len(y_train),))*np.mean(y_train))
                       title = "",
                       savefig = False,
                       file = "../img/accuracy_per_epoch.png"
