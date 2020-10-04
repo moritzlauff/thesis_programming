@@ -3,10 +3,9 @@ sys.path.insert(1, "../architecture")
 
 import reproducible
 import no_gpu
-from model_functions import nn_model_structure, nn_model_compile, nn_save, nn_load
+from model_functions import nn_save, nn_load
 import numpy as np
 from saving_functions import param_to_dict, results_to_dict, save_objects
-from sklearn.metrics import mean_squared_error
 from saving_functions import load_objects
 
 def enkf_regressor_extension(extend_model,
@@ -71,84 +70,27 @@ def enkf_regressor_extension(extend_model,
     if batch_size == None:
         batch_size = len(X_train)
 
-    n_cols = X_train.shape[1]
-
     n = len(X_train)
     num_batches = int(np.ceil(n / batch_size))
     batch_indices = np.cumsum([0] + list(np.ones(num_batches) * batch_size))
     batch_indices[-1] = n
-
-    #################################################
-    #################################################
-    #################################################
-    #################################################
-    #################################################
-    #################################################
-    
-    # Diese Dictionaries sind nicht gespeichert.
-    # Wenn randomizaton = True, dann geht es, weil die Gewichte aller Partikel 
-    # in jeder Epoche vom mean_model abhängen.
     
     model_dict = {}
-    weights_dict = {}
-    y_pred_dict = {}
+    for i in range(particles):
+        model_dict["model_{}".format(str(i+1))] = mean_model.set_weights(weights_dict["model_{}".format(str(i+1))])
+    
     jacobian_dict = {}
     weights_vector_dict = {}
-    train_mse_dict = {}
-    test_mse_dict = {}
-    iteration_dict = {}
-    
-    #################################################
-    #################################################
-    #################################################
-    #################################################
-    #################################################
-    #################################################
 
-    # init_model already has weights and biases following the Glorot distribution
-    # it can already be used to predict and evaluate, but it is very bad 
-    # only used to determine shapes and shape_elements via its weights
-    init_model = nn_model_structure(layers = layers,
-                                    neurons = neurons,
-                                    n_cols = n_cols,
-                                    classification = False)
-    init_model = nn_model_compile(init_model,
-                                  optimizer = "sgd")
-    weights = init_model.get_weights()
+
+    weights = mean_model.get_weights()
     # shape contains the shapes of the weight matrices and bias vectors as a list of arrays
     shapes = [np.array(params.shape) for params in weights]
     # shape_elements contains the indices of the weights as a vector and tells where to cut
     shape_elements = np.cumsum([0] + [np.prod(shape) for shape in shapes])
 
-    for i in range(particles):
-        # just an initial model with the correct structure regarding neurons, layers, activation functions, Glorot initialization
-        model = nn_model_structure(layers = layers,
-                                   neurons = neurons,
-                                   n_cols = n_cols,
-                                   classification = False)
-        model = nn_model_compile(model,
-                                 optimizer = "sgd")
-        # for every particle write the model in a dictionary
-        model_dict["model_{}".format(str(i+1))] = model
-
-        # for every particles write the weights and biases in a dictionary
-        weights_dict["model_{}".format(str(i+1))] = model_dict["model_{}".format(str(i+1))]\
-                                                        .get_weights()
-
-        train_mse_dict["model_{}".format(str(i+1))] = []
-        test_mse_dict["model_{}".format(str(i+1))] = []
-        iteration_dict["model_{}".format(str(i+1))] = []
-
-    # mean_model as the model with the mean of the weights of all particle models
-    mean_weights = list(np.mean(list(weights_dict.values()), axis = 0))
-    mean_model = init_model
-    mean_model.set_weights(mean_weights)
-
-    mean_model_train_mse = np.array(mean_model.evaluate(X_train, y_train, verbose = 0)[1])
-    mean_model_test_mse = np.array(mean_model.evaluate(X_test, y_test, verbose = 0)[1])
-
     # loop over all epochs
-    for epoch in range(epochs):
+    for epoch in range(epochs, additional_epochs + epochs):
         # early stopping
         if early_stopping:
             if epoch == 0:
@@ -263,9 +205,6 @@ def enkf_regressor_extension(extend_model,
             test_mse_dict["model_{}".format(str(i+1))].append(model_dict["model_{}".format(str(i+1))]\
                                                                       .evaluate(X_test, y_test, verbose = 0)[1])
 
-            # for every particle write the current iteration in a dictionary
-            iteration_dict["model_{}".format(str(i+1))].append("Epoch: {}, Batch: {}.".format(epoch+1, b+1))
-
         # update the mean_model
         mean_weights = list(np.mean(list(weights_dict.values()), axis = 0))
         mean_model.set_weights(mean_weights)
@@ -286,7 +225,7 @@ def enkf_regressor_extension(extend_model,
                                    layers,
                                    neurons,
                                    particles,
-                                   epochs,
+                                   epochs + additional_epochs,
                                    batch_size,
                                    h_0,
                                    delta,
