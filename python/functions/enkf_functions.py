@@ -286,7 +286,8 @@ def enkf_classifier(X_train,
                                        train_acc_dict,
                                        test_acc_dict,
                                        weights_dict,
-                                       y_pred_dict
+                                       y_pred_dict,
+                                       True
                                        )
 
         saving_dict = {}
@@ -576,7 +577,8 @@ def enkf_regressor(X_train,
                                        train_mse_dict,
                                        test_mse_dict,
                                        weights_dict,
-                                       y_pred_dict
+                                       y_pred_dict,
+                                       False
                                        )
 
         saving_dict = {}

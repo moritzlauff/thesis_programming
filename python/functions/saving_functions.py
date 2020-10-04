@@ -57,12 +57,13 @@ def param_to_dict(X_train,
 
     return param_dict
 
-def results_to_dict(mean_model_train_acc,
-                    mean_model_test_acc,
-                    train_acc_dict,
-                    test_acc_dict,
+def results_to_dict(mean_model_train_AccMSE,
+                    mean_model_test_AccMSE,
+                    train_AccMSE_dict,
+                    test_AccMSE_dict,
                     weights_dict,
-                    y_pred_dict
+                    y_pred_dict,
+                    classification
                     ):
 
     """ Function to write some objects into a dictionary.
@@ -71,6 +72,7 @@ def results_to_dict(mean_model_train_acc,
     Parameters:
 
         Outputs of enkf_classifier.
+        classfication (bool): Whether or not it is a classification problem.
 
     Returns:
 
@@ -79,10 +81,17 @@ def results_to_dict(mean_model_train_acc,
     """
 
     results_dict = {}
-    results_dict["mean_model_train_acc"] = mean_model_train_acc
-    results_dict["mean_model_test_acc"] = mean_model_test_acc
-    results_dict["train_acc_dict"] = train_acc_dict
-    results_dict["test_acc_dict"] = test_acc_dict
+    
+    if classification:
+        results_dict["mean_model_train_acc"] = mean_model_train_AccMSE
+        results_dict["mean_model_test_acc"] = mean_model_test_AccMSE
+        results_dict["train_acc_dict"] = train_AccMSE_dict
+        results_dict["test_acc_dict"] = test_AccMSE_dict
+    else:
+        results_dict["mean_model_train_mse"] = mean_model_train_AccMSE
+        results_dict["mean_model_test_mse"] = mean_model_test_AccMSE
+        results_dict["train_mse_dict"] = train_AccMSE_dict
+        results_dict["test_mse_dict"] = test_AccMSE_dict
     results_dict["weights_dict"] = weights_dict
     results_dict["y_pred_dict"] = y_pred_dict
 
