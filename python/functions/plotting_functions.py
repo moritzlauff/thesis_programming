@@ -419,13 +419,12 @@ def plot_IP_loss_evolution_many(setting_dict,
 
     """
 
-    particles = particle_list
-
     loss_evolution_dict = {}
 
-    for i in range(len(particles)):
+    for i in range(len(particle_list)):
+        setting_dict["particles"] = particle_list[i]
         _, loss_evolution_particles, _ = enkf_inverse_problem(setting_dict)
-        loss_evolution_dict["P{}".format(particles[i])] = loss_evolution_particles
+        loss_evolution_dict["P{}".format(particle_list[i])] = loss_evolution_particles
 
     plt.figure(figsize = (8,5))
     for i in range(len(loss_evolution_dict)):
@@ -507,13 +506,12 @@ def plot_IP_particle_std(setting_dict,
 
     """
 
-    particles = particle_list
-
     loss_final_std_dict = {}
 
-    for i in range(len(particles)):
+    for i in range(len(particle_list)):
+        setting_dict["particles"] = particle_list[i]
         _, _, loss_evolution_single_dict = enkf_inverse_problem(setting_dict)
-        loss_final_std_dict["P{}".format(particles[i])] = np.std([list(loss_evolution_single_dict.values())[j][-1] for j in range(len(loss_evolution_single_dict))])
+        loss_final_std_dict["P{}".format(particle_list[i])] = np.std([list(loss_evolution_single_dict.values())[j][-1] for j in range(len(loss_evolution_single_dict))])
 
     xticks = [int(list(loss_final_std_dict.keys())[i].split("P")[1]) for i in range(len(loss_final_std_dict))]
 
