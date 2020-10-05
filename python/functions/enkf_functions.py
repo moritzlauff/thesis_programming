@@ -90,7 +90,6 @@ def enkf_classifier(X_train,
     weights_vector_dict = {}
     train_acc_dict = {}
     test_acc_dict = {}
-    iteration_dict = {}
 
     # init_model already has weights and biases following the Glorot distribution
     # it can already be used to predict and evaluate, but it is very bad (<10% accuracy)
@@ -122,7 +121,6 @@ def enkf_classifier(X_train,
 
         train_acc_dict["model_{}".format(str(i+1))] = []
         test_acc_dict["model_{}".format(str(i+1))] = []
-        iteration_dict["model_{}".format(str(i+1))] = []
 
     # mean_model as the model with the mean of the weights of all particle models
     mean_weights = list(np.mean(list(weights_dict.values()), axis = 0))
@@ -247,9 +245,6 @@ def enkf_classifier(X_train,
             # for every particle write the test accuracy of the current iteration in a dictionary
             test_acc_dict["model_{}".format(str(i+1))].append(model_dict["model_{}".format(str(i+1))]\
                                                                       .evaluate(X_test, y_test, verbose = 0)[1])
-
-            # for every particle write the current iteration in a dictionary
-            iteration_dict["model_{}".format(str(i+1))].append("Epoch: {}, Batch: {}.".format(epoch+1, b+1))
 
         # update the mean_model
         mean_weights = list(np.mean(list(weights_dict.values()), axis = 0))
@@ -379,10 +374,9 @@ def enkf_regressor(X_train,
     weights_vector_dict = {}
     train_mse_dict = {}
     test_mse_dict = {}
-    iteration_dict = {}
 
     # init_model already has weights and biases following the Glorot distribution
-    # it can already be used to predict and evaluate, but it is very bad 
+    # it can already be used to predict and evaluate, but it is very bad
     # only used to determine shapes and shape_elements via its weights
     init_model = nn_model_structure(layers = layers,
                                     neurons = neurons,
@@ -413,7 +407,6 @@ def enkf_regressor(X_train,
 
         train_mse_dict["model_{}".format(str(i+1))] = []
         test_mse_dict["model_{}".format(str(i+1))] = []
-        iteration_dict["model_{}".format(str(i+1))] = []
 
     # mean_model as the model with the mean of the weights of all particle models
     mean_weights = list(np.mean(list(weights_dict.values()), axis = 0))
@@ -538,9 +531,6 @@ def enkf_regressor(X_train,
             # for every particle write the test accuracy of the current iteration in a dictionary
             test_mse_dict["model_{}".format(str(i+1))].append(model_dict["model_{}".format(str(i+1))]\
                                                                       .evaluate(X_test, y_test, verbose = 0)[1])
-
-            # for every particle write the current iteration in a dictionary
-            iteration_dict["model_{}".format(str(i+1))].append("Epoch: {}, Batch: {}.".format(epoch+1, b+1))
 
         # update the mean_model
         mean_weights = list(np.mean(list(weights_dict.values()), axis = 0))
