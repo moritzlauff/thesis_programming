@@ -3,16 +3,15 @@ sys.path.insert(1, "../architecture")
 
 import reproducible
 import no_gpu
-from model_functions import nn_save, nn_load
+from model_functions import nn_model_structure, nn_model_compile, nn_save, nn_load
 import numpy as np
 from saving_functions import param_to_dict, results_to_dict, save_objects
 from saving_functions import load_objects
+import re
 
 def enkf_regressor_extension(extend_model,
                              additional_epochs,
                              save_all = True,
-                             file_var = "file.pckl",
-                             file_model = "file.h5",
                              verbose = 0
                              ):
 
@@ -24,8 +23,6 @@ def enkf_regressor_extension(extend_model,
     extend_model (str): Path to an existing model (.h5-file), that shall be extended by more epochs.
     additional_epochs (int): Number of epochs the model shall be extended by.
     save_all (bool): Whether or not to save all important variables and models.
-    file_var (str): Path and name of the file to save variables into.
-    file_model (str): Path and name of the file to save the final model into.
     verbose (int): If 0, then don't print anything throughout the training process. If 1, then print training and test accuracy after each epoch.
 
 
@@ -75,9 +72,21 @@ def enkf_regressor_extension(extend_model,
     batch_indices = np.cumsum([0] + list(np.ones(num_batches) * batch_size))
     batch_indices[-1] = n
     
+    n_cols = X_train.shape[1]
+    
     model_dict = {}
     for i in range(particles):
-        model_dict["model_{}".format(str(i+1))] = mean_model.set_weights(weights_dict["model_{}".format(str(i+1))])
+        # just an initial model with the correct structure regarding neurons, layers, activation functions, Glorot initialization
+        model = nn_model_structure(layers = layers,
+                                   neurons = neurons,
+                                   n_cols = n_cols,
+                                   classification = False)
+        model = nn_model_compile(model,
+                                 optimizer = "sgd")
+        # for every particle write the model in a dictionary
+        model_dict["model_{}".format(str(i+1))] = model
+        # set the weights from the old model
+        model_dict["model_{}".format(str(i+1))].set_weights(weights_dict["model_{}".format(str(i+1))])
     
     jacobian_dict = {}
     weights_vector_dict = {}
@@ -240,8 +249,12 @@ def enkf_regressor_extension(extend_model,
                                        train_mse_dict,
                                        test_mse_dict,
                                        weights_dict,
-                                       y_pred_dict
+                                       y_pred_dict,
+                                       False
                                        )
+        
+        epoch_string = "E{}".format(str(epochs + additional_epochs))
+        file_var = re.sub("E[0-9]+", epoch_string, setting_path)
 
         saving_dict = {}
         saving_dict["parameters"] = param_dict
@@ -250,6 +263,8 @@ def enkf_regressor_extension(extend_model,
         save_objects(obj_dict = saving_dict,
                      file = file_var)
 
+        file_model = re.sub("E[0-9]+", epoch_string, extend_model)
+        
         nn_save(model = mean_model,
                 path_name = file_model)
 
