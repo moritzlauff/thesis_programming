@@ -2,6 +2,7 @@
 #   mnist_prep
 #   bike_prep
 #   connect4_prep
+#   wine_prep
 
 import sys
 sys.path.insert(1, "../architecture")
@@ -53,8 +54,8 @@ def bike_prep():
 
     X_train (pd.DataFrame): Train data X.
     X_test (pd.DataFrame): Test data X.
-    y_train (pd.DataFrame): Train data y.
-    y_test (pd.DataFrame): Test data y.
+    y_train (pd.Series): Train data y.
+    y_test (pd.Series): Test data y.
 
     """
 
@@ -105,10 +106,10 @@ def connect4_prep():
 
     Returns:
 
-    X_train_onehot (np.ndarray): Training data X.
-    X_test_onehot (np.ndarray): Test data X.
-    y_train_onehot (pd.DataFrame): Training data y.
-    y_val_onehot (pd.DataFrame): Test data y.
+    X_train (np.ndarray): Training data X.
+    X_test (np.ndarray): Test data X.
+    y_train (pd.DataFrame): Training data y.
+    y_val (pd.DataFrame): Test data y.
 
     """
 
@@ -137,4 +138,36 @@ def connect4_prep():
     y_train = y_train.reset_index(drop = True)
     y_test = y_test.reset_index(drop = True)
 
+    return X_train, X_test, y_train, y_test
+
+def wine_prep():
+
+    """ Function to prepare the wine dataset to use for modeling.
+
+
+    Parameters:
+
+    Returns:
+
+    X_train (np.ndarray): Training data X.
+    X_test (np.ndarray): Test data X.
+    y_train (pd.Series): Training data y.
+    y_val (pd.Series): Test data y.
+
+    """
+    
+    wine_white = pd.read_csv("../data/wine_quality/winequality_white.csv")
+    
+    new_col_names_white = [col_name.replace(" ", "_") for col_name in wine_white.columns]
+    wine_white.columns = new_col_names_white
+    
+    X = wine_white.drop("quality", axis = 1)
+    y = wine_white["quality"]
+    
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.15, stratify = y)
+    
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.fit_transform(X_test)
+    
     return X_train, X_test, y_train, y_test
