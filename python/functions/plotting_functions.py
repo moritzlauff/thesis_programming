@@ -24,6 +24,7 @@ from enkf_functions import enkf_inverse_problem
 
 def nn_plot_acc(model,
                 title = "",
+                benchmark_line = True,
                 savefig = False,
                 file = "../img/accuracy.png"
                ):
@@ -41,19 +42,25 @@ def nn_plot_acc(model,
 
     """
 
+    xticks = np.linspace(start = 0,
+                         stop = len(np.array(model.history.epoch)),
+                         num = int((len(np.array(model.history.epoch))) / 5 + 1))
+    xticks[0] = 1
+
     plt.figure(figsize = (8,5))
     plt.plot(np.array(model.history.epoch) + 1, model.history.history["accuracy"], label = "Training", marker = "s")
     plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_accuracy"], label = "Testing", marker = "s")
-    plt.hlines(y = 1 / model.layers[-1].output.shape[1],
-               xmin = 1,
-               xmax = len(np.array(model.history.epoch)),
-               color = "black",
-               label = "Random guessing")
+    if benchmark_line:
+        plt.hlines(y = 1 / model.layers[-1].output.shape[1],
+                   xmin = 1,
+                   xmax = len(np.array(model.history.epoch)),
+                   color = "black",
+                   label = "Random guessing")
     plt.legend(loc = "lower right")
     plt.title(title)
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
-    plt.xticks(ticks = np.array(model.history.epoch) + 1)
+    plt.xticks(ticks = xticks)
     plt.yticks(ticks = np.array([0, 0.2, 0.4, 0.6, 0.8, 1]))
     plt.grid()
     if savefig:
@@ -78,7 +85,7 @@ def nn_plot_iter_acc(train_acc_list,
     train_acc_list (list): Training accuracies.
     test_acc_list (list): Test accuracies.
     iteration_list (list): Epoch and Batch enumeration.
-    mean_comparison (float): Accuracy when always guessing at random.
+    mean_comparison (float or None): Accuracy when always guessing at random.
     num_ticks_per_epoch (int): Number of grid ticks of the x axis per epoch.
     title (str): Title of the plot.
     savefig (bool): Whether or not to save the plot.
@@ -109,11 +116,12 @@ def nn_plot_iter_acc(train_acc_list,
                linestyle = "dotted",
                label = "Epochs"
                )
-    plt.hlines(y = mean_comparison,
-               xmin = 1,
-               xmax = len(iteration_list),
-               color = "black",
-               label = "Random guessing")
+    if mean_comparison is not None:
+        plt.hlines(y = mean_comparison,
+                   xmin = 1,
+                   xmax = len(iteration_list),
+                   color = "black",
+                   label = "Random guessing")
     plt.legend(loc = "lower right")
     plt.title(title)
     plt.xlabel("Iteration")
@@ -128,6 +136,7 @@ def nn_plot_iter_acc(train_acc_list,
 def nn_plot_epoch_acc(train_acc_list,
                       test_acc_list,
                       mean_comparison,
+                      start_epoch = 1,
                       title = "",
                       savefig = False,
                       file = "../img/accuracy_per_epoch.png"
@@ -140,7 +149,7 @@ def nn_plot_epoch_acc(train_acc_list,
 
     train_acc_list (list): Training accuracies.
     test_acc_list (list): Test accuracies.
-    mean_comparison (float): Accuracy when always guessing at random.
+    mean_comparison (float or None): Accuracy when always guessing at random.
     title (str): Title of the plot.
     savefig (bool): Whether or not to save the plot.
     file (str): Path and filename if savefig is True.
@@ -151,15 +160,17 @@ def nn_plot_epoch_acc(train_acc_list,
     xticks = np.linspace(start = 0,
                          stop = len(train_acc_list) - 1,
                          num = int((len(train_acc_list) - 1) / 5 + 1))
+    xticks[0] = start_epoch
 
     plt.figure(figsize = (8,5))
-    plt.plot(np.arange(len(train_acc_list)), train_acc_list, label = "Training", marker = "s")
-    plt.plot(np.arange(len(test_acc_list)), test_acc_list, label = "Testing", marker = "s")
-    plt.hlines(y = mean_comparison,
-               xmin = 0,
-               xmax = len(train_acc_list) - 1,
-               color = "black",
-               label = "Random guessing")
+    plt.plot(np.arange(len(train_acc_list))[start_epoch:], train_acc_list[start_epoch:], label = "Training", marker = "s")
+    plt.plot(np.arange(len(test_acc_list))[start_epoch:], test_acc_list[start_epoch:], label = "Testing", marker = "s")
+    if mean_comparison is not None:
+        plt.hlines(y = mean_comparison,
+                   xmin = start_epoch,
+                   xmax = len(train_acc_list) - 1,
+                   color = "black",
+                   label = "Random guessing")
     plt.legend(loc = "lower right")
     plt.title(title)
     plt.xlabel("Epoch")
@@ -186,7 +197,7 @@ def nn_plot_mse(model,
     Parameters:
 
     model (tensorflow.python.keras.engine.sequential.Sequential): Some fitted model.
-    mse_mean (float): MSE when always predicting the mean of the target.
+    mse_mean (float or None): MSE when always predicting the mean of the target.
     title (str): Title of the plot.
     savefig (bool): Whether or not to save the plot.
     file (str): Path and filename if savefig is True.
@@ -194,19 +205,25 @@ def nn_plot_mse(model,
 
     """
 
+    xticks = np.linspace(start = 0,
+                         stop = len(np.array(model.history.epoch)),
+                         num = int((len(np.array(model.history.epoch))) / 5 + 1))
+    xticks[0] = 1
+
     plt.figure(figsize = (8,5))
     plt.plot(np.array(model.history.epoch) + 1, model.history.history["mse"], label = "Training", marker = "s")
     plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_mse"], label = "Testing", marker = "s")
-    plt.hlines(y = mse_mean,
-               xmin = 1,
-               xmax = len(np.array(model.history.epoch)),
-               color = "black",
-               label = "Mean as prediction")
+    if mse_mean is not None:
+        plt.hlines(y = mse_mean,
+                   xmin = 1,
+                   xmax = len(np.array(model.history.epoch)),
+                   color = "black",
+                   label = "Mean as prediction")
     plt.legend(loc = "upper right")
     plt.title(title)
     plt.xlabel("Epoch")
     plt.ylabel("Mean Squared Error")
-    plt.xticks(ticks = np.array(model.history.epoch) + 1)
+    plt.xticks(ticks = xticks)
     plt.grid()
     if savefig:
         plt.savefig(file)
@@ -231,7 +248,7 @@ def nn_plot_iter_mse(train_mse_list,
     train_mse_list (list): Training MSEs.
     test_mse_list (list): Test MSEs.
     iteration_list (list): Epoch and Batch enumeration.
-    mse_mean (float): MSE when always predicting the mean of the target.
+    mse_mean (float or None): MSE when always predicting the mean of the target.
     title (str): Title of the plot.
     savefig (bool): Whether or not to save the plot.
     file (str): Path and filename if savefig is True.
@@ -261,11 +278,12 @@ def nn_plot_iter_mse(train_mse_list,
                linestyle = "dotted",
                label = "Epochs"
                )
-    plt.hlines(y = mse_mean,
-               xmin = 1,
-               xmax = len(iteration_list),
-               color = "black",
-               label = "Mean as prediction")
+    if mse_mean is not None:
+        plt.hlines(y = mse_mean,
+                   xmin = 1,
+                   xmax = len(iteration_list),
+                   color = "black",
+                   label = "Mean as prediction")
     plt.legend(loc = "upper right")
     plt.title(title)
     plt.xlabel("Iteration")
@@ -279,6 +297,7 @@ def nn_plot_iter_mse(train_mse_list,
 def nn_plot_epoch_mse(train_mse_list,
                       test_mse_list,
                       mse_mean, # mean_squared_error(y_train, np.ones(shape = (len(y_train),))*np.mean(y_train))
+                      start_epoch = 1,
                       title = "",
                       savefig = False,
                       file = "../img/accuracy_per_epoch.png"
@@ -292,7 +311,7 @@ def nn_plot_epoch_mse(train_mse_list,
 
     train_mse_list (list): Training MSEs.
     test_mse_list (list): Test MSEs.
-    mse_mean (float): MSE when always predicting the mean of the target.
+    mse_mean (float or None): MSE when always predicting the mean of the target.
     title (str): Title of the plot.
     savefig (bool): Whether or not to save the plot.
     file (str): Path and filename if savefig is True.
@@ -303,15 +322,17 @@ def nn_plot_epoch_mse(train_mse_list,
     xticks = np.linspace(start = 0,
                          stop = len(train_mse_list) - 1,
                          num = int((len(train_mse_list) - 1) / 5 + 1))
+    xticks[0] = start_epoch
 
     plt.figure(figsize = (8,5))
-    plt.plot(np.arange(len(train_mse_list)) , train_mse_list, label = "Training", marker = "s")
-    plt.plot(np.arange(len(test_mse_list)), test_mse_list, label = "Testing", marker = "s")
-    plt.hlines(y = mse_mean,
-               xmin = 0,
-               xmax = len(train_mse_list) - 1,
-               color = "black",
-               label = "Random guessing")
+    plt.plot(np.arange(len(train_mse_list))[start_epoch:] , train_mse_list[start_epoch:], label = "Training", marker = "s")
+    plt.plot(np.arange(len(test_mse_list))[start_epoch:], test_mse_list[start_epoch:], label = "Testing", marker = "s")
+    if mse_mean is not None:
+        plt.hlines(y = mse_mean,
+                   xmin = start_epoch,
+                   xmax = len(train_mse_list) - 1,
+                   color = "black",
+                   label = "Random guessing")
     plt.legend(loc = "upper right")
     plt.title(title)
     plt.xlabel("Epoch")
@@ -378,7 +399,7 @@ def nn_conf_mat(y_true,
     return cm
 
 def plot_IP_loss_evolution(loss_evolution,
-                           start_epoch = 0):
+                           start_iteration = 1):
 
 
     """ Plot the evolution of the loss (for linear or nonlinear inverse problem).
@@ -387,24 +408,29 @@ def plot_IP_loss_evolution(loss_evolution,
     Parameters:
 
     loss_evolution (list): Evolution of the loss value over each iteration.
-    start_epoch (int): First epoch to be plotted. Helpful for large difference in first and last loss value.
+    start_iteration (int): First iteration to be plotted. Helpful for large difference in first and last loss value.
 
 
     """
 
+    xticks = np.linspace(start = 0,
+                         stop = len(loss_evolution) - 1,
+                         num = int((len(loss_evolution) - 1) / 5 + 1))
+    xticks[0] = start_iteration
+
     plt.figure(figsize = (8,5))
-    plt.plot(np.arange(len(loss_evolution))[start_epoch:],
-             loss_evolution[start_epoch:],
+    plt.plot(np.arange(len(loss_evolution))[start_iteration:],
+             loss_evolution[start_iteration:],
              marker = "s")
     plt.grid()
     plt.xlabel("Iteration")
     plt.ylabel("Mean Squared Error")
-    plt.xticks(ticks = np.arange(0, len(loss_evolution), 5))
+    plt.xticks(ticks = xticks)
     plt.show()
 
 def plot_IP_loss_evolution_many(setting_dict,
                                 particle_list,
-                                start_epoch = 0):
+                                start_iteration = 1):
 
 
     """ Plot the evolution of the loss (for linear or nonlinear inverse problem).
@@ -414,7 +440,7 @@ def plot_IP_loss_evolution_many(setting_dict,
 
     setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems.
     particle_list (list): Different numbers of particles.
-    start_epoch (int): First epoch to be plotted. Helpful for large difference in first and last loss value.
+    start_iteration (int): First iteration to be plotted. Helpful for large difference in first and last loss value.
 
 
     """
@@ -426,16 +452,21 @@ def plot_IP_loss_evolution_many(setting_dict,
         _, loss_evolution_particles, _ = enkf_inverse_problem(setting_dict)
         loss_evolution_dict["P{}".format(particle_list[i])] = loss_evolution_particles
 
+    xticks = np.linspace(start = 0,
+                         stop = len(list(loss_evolution_dict.values())[0]) - 1,
+                         num = int((len(list(loss_evolution_dict.values())[0]) - 1) / 5 + 1))
+    xticks[0] = start_iteration
+
     plt.figure(figsize = (8,5))
     for i in range(len(loss_evolution_dict)):
-        plt.plot(np.arange(len(list(loss_evolution_dict.values())[i]))[start_epoch:],
-                 list(loss_evolution_dict.values())[i][start_epoch:],
+        plt.plot(np.arange(len(list(loss_evolution_dict.values())[i]))[start_iteration:],
+                 list(loss_evolution_dict.values())[i][start_iteration:],
                  label = list(loss_evolution_dict.keys())[i])
     plt.grid()
     plt.xlabel("Iteration")
     plt.ylabel("Mean Squared Error")
     plt.legend(loc = "upper right")
-    plt.xticks(ticks = np.arange(0, len(list(loss_evolution_dict.values())[0]), 5))
+    plt.xticks(ticks = xticks)
     plt.show()
 
 def plot_IP_true_false(setting_dict,
@@ -515,6 +546,7 @@ def plot_IP_particle_std(setting_dict,
 
     xticks = [int(list(loss_final_std_dict.keys())[i].split("P")[1]) for i in range(len(loss_final_std_dict))]
 
+    plt.figure(figsize = (8,5))
     plt.plot(xticks, list(loss_final_std_dict.values()), marker = "s")
     plt.xlabel("Number of particles")
     plt.ylabel("Standard deviation of final MSE")
