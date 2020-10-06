@@ -1,14 +1,16 @@
 # data folder
-/data
 /notebooks/.ipynb_checkpoints
 /notebooks/__pycache__
-# /code_tests
 /code_test/.ipynb_checkpoints
-# models
+# /models
 python/functions/__pycache__
 python/architecture/__pycache__
-\old_tests
-#
+# /code_tests
+/data
+# /img
+# /models
+# /objects
+/old_tests
 
 # Python Cache
 .pyc
