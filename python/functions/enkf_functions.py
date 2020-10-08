@@ -135,6 +135,7 @@ def enkf_classifier(X_train,
 
     # loop over all epochs
     for epoch in range(epochs):
+
         # early stopping
         if early_stopping:
             if epoch == 0:
@@ -146,8 +147,9 @@ def enkf_classifier(X_train,
                 if np.absolute(test_acc_new - test_acc_old) <= early_stopping_diff and np.absolute(train_acc_new - train_acc_old) <= early_stopping_diff:
                     print("STOP: Early Stopping after epoch {} because improvement in training accuracy is only {} and in test accuracy only {}."\
                                                                          .format(epoch+1, train_acc_new - train_acc_old, test_acc_new - test_acc_old))
-                    return mean_model, mean_model_train_acc, mean_model_test_acc
+                    break
                 test_acc_old = test_acc_new
+
         # shuffle the data
         if shuffle:
             indices = y_train.sample(frac=1).index
@@ -155,8 +157,10 @@ def enkf_classifier(X_train,
             indices = y_train.index
         X_batches = [X_train[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
         y_batches = [y_train.iloc[indices].reset_index(drop = True)[int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
+
         # loop over all batches
         for b in range(num_batches):
+
             for i in range(particles):
                 # set new weights for model
                 model_dict["model_{}".format(str(i+1))].set_weights(weights_dict["model_{}".format(str(i+1))])
@@ -204,6 +208,7 @@ def enkf_classifier(X_train,
                     start = shape_elements[l]
                     end = shape_elements[l+1]
                     weights_dict["model_{}".format(str(i+1))][l] = np.reshape(weights_vector_dict["model_{}".format(str(i+1))][start:end], tuple(shapes[l]))
+
                 if randomization:
                     # add randomization/ noise to each particle
                     new_weights = []
@@ -393,6 +398,7 @@ def enkf_classifier_extension(extend_model,
 
     # loop over all epochs
     for epoch in range(epochs, additional_epochs + epochs):
+
         # early stopping
         if early_stopping:
             if epoch == 0:
@@ -404,8 +410,9 @@ def enkf_classifier_extension(extend_model,
                 if np.absolute(test_acc_new - test_acc_old) <= early_stopping_diff and np.absolute(train_acc_new - train_acc_old) <= early_stopping_diff:
                     print("STOP: Early Stopping after epoch {} because improvement in training accuracy is only {} and in test accuracy only {}."\
                                                                          .format(epoch+1, train_acc_new - train_acc_old, test_acc_new - test_acc_old))
-                    return mean_model, mean_model_train_acc, mean_model_test_acc
+                    break
                 test_acc_old = test_acc_new
+
         # shuffle the data
         if shuffle:
             indices = y_train.sample(frac=1).index
@@ -413,6 +420,7 @@ def enkf_classifier_extension(extend_model,
             indices = y_train.index
         X_batches = [X_train[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
         y_batches = [y_train.iloc[indices].reset_index(drop = True)[int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
+
         # loop over all batches
         for b in range(num_batches):
             for i in range(particles):
@@ -462,6 +470,7 @@ def enkf_classifier_extension(extend_model,
                     start = shape_elements[l]
                     end = shape_elements[l+1]
                     weights_dict["model_{}".format(str(i+1))][l] = np.reshape(weights_vector_dict["model_{}".format(str(i+1))][start:end], tuple(shapes[l]))
+
                 if randomization:
                     # add randomization/ noise to each particle
                     new_weights = []
@@ -686,6 +695,7 @@ def enkf_regressor(X_train,
 
     # loop over all epochs
     for epoch in range(epochs):
+
         # early stopping
         if early_stopping:
             if epoch == 0:
@@ -697,8 +707,9 @@ def enkf_regressor(X_train,
                 if np.absolute(test_mse_new - test_mse_old) <= early_stopping_diff and np.absolute(train_mse_new - train_mse_old) <= early_stopping_diff:
                     print("STOP: Early Stopping after epoch {} because improvement in training mse is only {} and in test mse only {}."\
                                                                          .format(epoch+1, train_mse_new - train_mse_old, test_mse_new - test_mse_old))
-                    return mean_model, mean_model_train_mse, mean_model_test_mse
+                    break
                 test_mse_old = test_mse_new
+
         # shuffle the data
         if shuffle:
             indices = y_train.sample(frac=1).index
@@ -707,6 +718,7 @@ def enkf_regressor(X_train,
         X_batches = [np.array(X_train)[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
         y_batches = [y_train.iloc[indices].reset_index(drop = True)[int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
         y_batches = [np.array(i) for i in y_batches]
+
         # loop over all batches
         for b in range(num_batches):
             for i in range(particles):
@@ -755,6 +767,7 @@ def enkf_regressor(X_train,
                     start = shape_elements[l]
                     end = shape_elements[l+1]
                     weights_dict["model_{}".format(str(i+1))][l] = np.reshape(weights_vector_dict["model_{}".format(str(i+1))][start:end], tuple(shapes[l]))
+
                 if randomization:
                     # add randomization/ noise to each particle
                     new_weights = []
@@ -944,6 +957,7 @@ def enkf_regressor_extension(extend_model,
 
     # loop over all epochs
     for epoch in range(epochs, additional_epochs + epochs):
+
         # early stopping
         if early_stopping:
             if epoch == 0:
@@ -955,8 +969,9 @@ def enkf_regressor_extension(extend_model,
                 if np.absolute(test_mse_new - test_mse_old) <= early_stopping_diff and np.absolute(train_mse_new - train_mse_old) <= early_stopping_diff:
                     print("STOP: Early Stopping after epoch {} because improvement in training mse is only {} and in test mse only {}."\
                                                                          .format(epoch+1, train_mse_new - train_mse_old, test_mse_new - test_mse_old))
-                    return mean_model, mean_model_train_mse, mean_model_test_mse
+                    break
                 test_mse_old = test_mse_new
+
         # shuffle the data
         if shuffle:
             indices = y_train.sample(frac=1).index
@@ -965,6 +980,7 @@ def enkf_regressor_extension(extend_model,
         X_batches = [np.array(X_train)[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
         y_batches = [y_train.iloc[indices].reset_index(drop = True)[int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
         y_batches = [np.array(i) for i in y_batches]
+
         # loop over all batches
         for b in range(num_batches):
             for i in range(particles):
@@ -1013,6 +1029,7 @@ def enkf_regressor_extension(extend_model,
                     start = shape_elements[l]
                     end = shape_elements[l+1]
                     weights_dict["model_{}".format(str(i+1))][l] = np.reshape(weights_vector_dict["model_{}".format(str(i+1))][start:end], tuple(shapes[l]))
+
                 if randomization:
                     # add randomization/ noise to each particle
                     new_weights = []
@@ -1223,6 +1240,7 @@ def enkf_inverse_problem(setting_dict
         # write the updates back into the dictionary
         for i in range(particles):
             param_dict["particle_{}".format(str(i+1))] = params_all_ptcls[i]
+
             if randomization:
                 # add randomization/ noise to each particle
                 stddev = 0.1
@@ -1231,6 +1249,7 @@ def enkf_inverse_problem(setting_dict
                                          size = param_dict["particle_{}".format(str(i+1))].shape)
                 new_param = param_dict["particle_{}".format(str(i+1))] + noise
                 param_dict["particle_{}".format(str(i+1))] = new_param
+
         if randomization:
             # randomize particles around their mean
             param_dict_mean = list(np.mean(list(param_dict.values()), axis = 0))
