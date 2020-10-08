@@ -151,8 +151,10 @@ def enkf_classifier(X_train,
         # shuffle the data
         if shuffle:
             indices = y_train.sample(frac=1).index
-            X_batches = [X_train[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
-            y_batches = [y_train.iloc[indices].reset_index(drop = True)[int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
+        else:
+            indices = y_train.index
+        X_batches = [X_train[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
+        y_batches = [y_train.iloc[indices].reset_index(drop = True)[int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
         # loop over all batches
         for b in range(num_batches):
             for i in range(particles):
@@ -407,8 +409,10 @@ def enkf_classifier_extension(extend_model,
         # shuffle the data
         if shuffle:
             indices = y_train.sample(frac=1).index
-            X_batches = [X_train[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
-            y_batches = [y_train.iloc[indices].reset_index(drop = True)[int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
+        else:
+            indices = y_train.index
+        X_batches = [X_train[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
+        y_batches = [y_train.iloc[indices].reset_index(drop = True)[int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
         # loop over all batches
         for b in range(num_batches):
             for i in range(particles):
@@ -698,9 +702,11 @@ def enkf_regressor(X_train,
         # shuffle the data
         if shuffle:
             indices = y_train.sample(frac=1).index
-            X_batches = [np.array(X_train)[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
-            y_batches = [y_train.iloc[indices].reset_index(drop = True)[int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
-            y_batches = [np.array(i) for i in y_batches]
+        else:
+            indices = y_train.index
+        X_batches = [np.array(X_train)[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
+        y_batches = [y_train.iloc[indices].reset_index(drop = True)[int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
+        y_batches = [np.array(i) for i in y_batches]
         # loop over all batches
         for b in range(num_batches):
             for i in range(particles):
@@ -954,9 +960,11 @@ def enkf_regressor_extension(extend_model,
         # shuffle the data
         if shuffle:
             indices = y_train.sample(frac=1).index
-            X_batches = [np.array(X_train)[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
-            y_batches = [y_train.iloc[indices].reset_index(drop = True)[int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
-            y_batches = [np.array(i) for i in y_batches]
+        else:
+            indices = y_train.index
+        X_batches = [np.array(X_train)[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
+        y_batches = [y_train.iloc[indices].reset_index(drop = True)[int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
+        y_batches = [np.array(i) for i in y_batches]
         # loop over all batches
         for b in range(num_batches):
             for i in range(particles):
