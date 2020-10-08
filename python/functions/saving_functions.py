@@ -38,10 +38,18 @@ def param_to_dict(X_train,
     """
 
     param_dict = {}
-    param_dict["X_train"] = X_train
-    param_dict["X_test"] = X_test
-    param_dict["y_train"] = y_train
-    param_dict["y_test"] = y_test
+
+    if len(X_train) > 20000:
+        param_dict["X_train"] = "MNIST"
+        param_dict["X_test"] = "MNIST"
+        param_dict["y_train"] = "MNIST"
+        param_dict["y_test"] = "MNIST"
+    else:
+        param_dict["X_train"] = X_train
+        param_dict["X_test"] = X_test
+        param_dict["y_train"] = y_train
+        param_dict["y_test"] = y_test
+
     param_dict["layers"] = layers
     param_dict["neurons"] = neurons
     param_dict["particles"] = particles
@@ -81,7 +89,7 @@ def results_to_dict(mean_model_train_AccMSE,
     """
 
     results_dict = {}
-    
+
     if classification:
         results_dict["mean_model_train_acc"] = mean_model_train_AccMSE
         results_dict["mean_model_test_acc"] = mean_model_test_AccMSE

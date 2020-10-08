@@ -156,7 +156,7 @@ def wine_prep():
 
     """
     
-    wine_white = pd.read_csv("../data/wine_quality/winequality_white.csv", sep = ";")
+    wine_white = pd.read_csv("../data/wine_quality/winequality_white.csv")
     
     new_col_names_white = [col_name.replace(" ", "_") for col_name in wine_white.columns]
     wine_white.columns = new_col_names_white
