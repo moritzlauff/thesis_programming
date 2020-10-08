@@ -11,6 +11,7 @@ python/architecture/__pycache__
 # /models
 # /objects
 /old_tests
+/old_bike
 
 # Python Cache
 .pyc
