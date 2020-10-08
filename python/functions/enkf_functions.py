@@ -29,7 +29,7 @@ def enkf_classifier(X_train,
                     verbose = 0
                     ):
 
-    """ Ensemble Kalman Filter algorithm for classification problem.
+    """ Ensemble Kalman Filter algorithm for classification problems.
 
 
     Parameters:
@@ -306,7 +306,7 @@ def enkf_classifier_extension(extend_model,
                               verbose = 0
                               ):
 
-    """ Ensemble Kalman Filter algorithm for epoch extension of classification problem.
+    """ Ensemble Kalman Filter algorithm for epoch extension of classification problems.
 
 
     Parameters:
@@ -574,7 +574,7 @@ def enkf_regressor(X_train,
                    verbose = 0
                    ):
 
-    """ Ensemble Kalman Filter algorithm for regression problem.
+    """ Ensemble Kalman Filter algorithm for regression problems.
 
 
     Parameters:
@@ -853,7 +853,7 @@ def enkf_regressor_extension(extend_model,
                              verbose = 0
                              ):
 
-    """ Ensemble Kalman Filter algorithm for epoch extension of regression problem.
+    """ Ensemble Kalman Filter algorithm for epoch extension of regression problems.
 
 
     Parameters:
