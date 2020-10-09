@@ -11,6 +11,7 @@
 #   plot_IP_true_false
 #   plot_IP_particle_loss
 #   plot_IP_particle_std
+#   plot_IP_iteration_std
 
 import sys
 sys.path.insert(1, "../architecture")
@@ -405,7 +406,8 @@ def nn_conf_mat(y_true,
     return cm
 
 def plot_IP_loss_evolution(loss_evolution,
-                           start_iteration = 1):
+                           start_iteration = 1
+                           ):
 
 
     """ Plot the evolution of the loss (for linear or nonlinear inverse problem).
@@ -436,7 +438,10 @@ def plot_IP_loss_evolution(loss_evolution,
 
 def plot_IP_loss_evolution_many(setting_dict,
                                 particle_list,
-                                start_iteration = 1):
+                                start_iteration = 1,
+                                end_iteration = None, # setting_dict["iterations"]
+                                log = False
+                                ):
 
 
     """ Plot the evolution of the loss (for linear or nonlinear inverse problem).
@@ -447,9 +452,13 @@ def plot_IP_loss_evolution_many(setting_dict,
     setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems.
     particle_list (list): Different numbers of particles.
     start_iteration (int): First iteration to be plotted. Helpful for large difference in first and last loss value.
+    end_iteration (int): Last iteration to be plotted. Helpful for large difference in first and last loss value.
+    log (bool): Whether or not to use the logarithm of the loss in the plot. Helpful for small differences within particles.
 
 
     """
+    if end_iteration is None:
+        end_iteration = setting_dict["iterations"]
 
     loss_evolution_dict = {}
 
@@ -459,18 +468,29 @@ def plot_IP_loss_evolution_many(setting_dict,
         loss_evolution_dict["P{}".format(particle_list[i])] = loss_evolution_particles
 
     xticks = np.linspace(start = 0,
-                         stop = len(list(loss_evolution_dict.values())[0]) - 1,
-                         num = int((len(list(loss_evolution_dict.values())[0]) - 1) / 5 + 1))
-    xticks[0] = start_iteration
+                         stop = setting_dict["iterations"],
+                         num = int((setting_dict["iterations"]) / 5 + 1))
+    xticks = np.delete(xticks, np.where(xticks <= start_iteration))
+    xticks = np.delete(xticks, np.where(xticks >= end_iteration))
+    xticks = np.append(xticks, [start_iteration])
+    xticks = np.append(xticks, [end_iteration])
 
     plt.figure(figsize = (8,5))
     for i in range(len(loss_evolution_dict)):
-        plt.plot(np.arange(len(list(loss_evolution_dict.values())[i]))[start_iteration:],
-                 list(loss_evolution_dict.values())[i][start_iteration:],
-                 label = list(loss_evolution_dict.keys())[i])
+        if log:
+            plt.plot(np.arange(len(list(loss_evolution_dict.values())[i]))[start_iteration:end_iteration+1],
+                     np.log(list(loss_evolution_dict.values())[i][start_iteration:end_iteration+1]),
+                     label = list(loss_evolution_dict.keys())[i])
+        else:
+            plt.plot(np.arange(len(list(loss_evolution_dict.values())[i]))[start_iteration:end_iteration+1],
+                     list(loss_evolution_dict.values())[i][start_iteration:end_iteration+1],
+                     label = list(loss_evolution_dict.keys())[i])
     plt.grid()
     plt.xlabel("Iteration")
-    plt.ylabel("Mean Squared Error")
+    if log:
+        plt.ylabel("Log of the Mean Squared Error")
+    else:
+        plt.ylabel("Mean Squared Error")
     plt.legend(loc = "upper right")
     plt.xticks(ticks = xticks)
     plt.show()
@@ -533,7 +553,7 @@ def plot_IP_particle_loss(loss_evolution,
 def plot_IP_particle_std(setting_dict,
                          particle_list):
 
-    """ Plot the evolution of the standard deviation od the final losses of all particles (for linear or nonlinear inverse problem).
+    """ Plot the evolution of the standard deviation of the final losses divided by their mean of all particles w.r.t. the number of particles (for linear or nonlinear inverse problem).
 
 
     Parameters:
@@ -548,14 +568,47 @@ def plot_IP_particle_std(setting_dict,
     for i in range(len(particle_list)):
         setting_dict["particles"] = particle_list[i]
         _, _, loss_evolution_single_dict = enkf_inverse_problem(setting_dict)
-        loss_final_std_dict["P{}".format(particle_list[i])] = np.std([list(loss_evolution_single_dict.values())[j][-1] for j in range(len(loss_evolution_single_dict))])
+        loss_final_std_dict["P{}".format(particle_list[i])] = np.std([list(loss_evolution_single_dict.values())[j][-1] for j in range(len(loss_evolution_single_dict))]) / np.mean([list(loss_evolution_single_dict.values())[j][-1] for j in range(len(loss_evolution_single_dict))])
+
 
     xticks = [int(list(loss_final_std_dict.keys())[i].split("P")[1]) for i in range(len(loss_final_std_dict))]
 
     plt.figure(figsize = (8,5))
     plt.plot(xticks, list(loss_final_std_dict.values()), marker = "s")
     plt.xlabel("Number of particles")
-    plt.ylabel("Standard deviation of final MSE")
+    plt.ylabel("std(mse)/mean(std)")
+    plt.xticks(ticks = xticks)
+    plt.grid()
+    plt.show()
+
+def plot_IP_iteration_std(setting_dict,
+                          iteration_list):
+
+    """ Plot the evolution of the standard deviation of the final losses divided by their mean of all particles w.r.t. the number of iterations (for linear or nonlinear inverse problem).
+
+
+    Parameters:
+
+    setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems.
+    iteration_list (list): Different numbers of iterations.
+
+    """
+
+    loss_final_std_dict = {}
+
+    for i in range(len(iteration_list)):
+        setting_dict["iterations"] = iteration_list[i]
+        np.random.seed(42)
+        _, _, loss_evolution_single_dict = enkf_inverse_problem(setting_dict)
+        loss_final_std_dict["I{}".format(iteration_list[i])] = np.std([list(loss_evolution_single_dict.values())[j][-1] for j in range(len(loss_evolution_single_dict))]) / np.mean([list(loss_evolution_single_dict.values())[j][-1] for j in range(len(loss_evolution_single_dict))])
+
+
+    xticks = [int(list(loss_final_std_dict.keys())[i].split("I")[1]) for i in range(len(loss_final_std_dict))]
+
+    plt.figure(figsize = (8,5))
+    plt.plot(xticks, list(loss_final_std_dict.values()), marker = "s")
+    plt.xlabel("Number of iterations")
+    plt.ylabel("std(mse)/mean(std)")
     plt.xticks(ticks = xticks)
     plt.grid()
     plt.show()
