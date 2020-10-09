@@ -431,9 +431,10 @@ def plot_IP_loss_evolution(loss_evolution,
              loss_evolution[start_iteration:],
              marker = "s")
     plt.grid()
-    plt.xlabel("Iteration")
-    plt.ylabel("Mean Squared Error")
-    plt.xticks(ticks = xticks)
+    plt.xlabel("Iteration", fontsize = 16)
+    plt.ylabel("Mean Squared Error", fontsize = 16)
+    plt.xticks(ticks = xticks, fontsize = 14)
+    plt.yticks(fontsize = 14)
     plt.show()
 
 def plot_IP_loss_evolution_many(setting_dict,
@@ -486,13 +487,14 @@ def plot_IP_loss_evolution_many(setting_dict,
                      list(loss_evolution_dict.values())[i][start_iteration:end_iteration+1],
                      label = list(loss_evolution_dict.keys())[i])
     plt.grid()
-    plt.xlabel("Iteration")
+    plt.xlabel("Iteration", fontsize = 16)
     if log:
-        plt.ylabel("Log of the Mean Squared Error")
+        plt.ylabel("Log of the Mean Squared Error", fontsize = 16)
     else:
-        plt.ylabel("Mean Squared Error")
+        plt.ylabel("Mean Squared Error", fontsize = 16)
     plt.legend(loc = "upper right")
-    plt.xticks(ticks = xticks)
+    plt.xticks(ticks = xticks, fontsize = 14)
+    plt.yticks(fontsize = 14)
     plt.show()
 
 def plot_IP_true_false(setting_dict,
@@ -521,8 +523,10 @@ def plot_IP_true_false(setting_dict,
     plt.scatter(x, y, color = "blue", s = 200, alpha = 0.5, label = "True")
     plt.scatter(x, model_func(final_params), color = "red", s = 30, label = "Predicted")
     plt.legend(loc = "upper right")
-    plt.xlabel("x")
-    plt.ylabel("y")
+    plt.xlabel(r'$\theta$', fontsize = 16)
+    plt.ylabel(r'$\mathcal{G}(\theta)$', fontsize = 16)
+    plt.xticks(fontsize = 14)
+    plt.yticks(fontsize = 14)
     plt.show()
 
 def plot_IP_particle_loss(loss_evolution,
@@ -544,8 +548,9 @@ def plot_IP_particle_loss(loss_evolution,
     plt.scatter(np.arange(len(final_mse))+1, final_mse, alpha = 0.5, label = "Particle")
     plt.hlines(y = loss_evolution[-1], xmin = 1, xmax = len(final_mse), color = "black", label = "Mean Particle")
     plt.xticks([], [])
+    plt.yticks(fontsize = 14)
     plt.legend(loc = "upper right")
-    plt.ylabel("Mean Squared Error")
+    plt.ylabel("Mean Squared Error", fontsize = 16)
     plt.ylim(bottom = np.min([np.min(final_mse), loss_evolution[-1]])*0.9,
              top = np.max([np.max(final_mse), loss_evolution[-1]])*1.1)
     plt.show()
@@ -575,9 +580,10 @@ def plot_IP_particle_std(setting_dict,
 
     plt.figure(figsize = (8,5))
     plt.plot(xticks, list(loss_final_std_dict.values()), marker = "s")
-    plt.xlabel("Number of particles")
-    plt.ylabel("std(mse)/mean(std)")
-    plt.xticks(ticks = xticks)
+    plt.xlabel("Number of particles", fontsize = 16)
+    plt.ylabel("MSE std / MSE mean", fontsize = 16)
+    plt.xticks(ticks = xticks, fontsize = 14)
+    plt.yticks(fontsize = 14)
     plt.grid()
     plt.show()
 
@@ -607,8 +613,9 @@ def plot_IP_iteration_std(setting_dict,
 
     plt.figure(figsize = (8,5))
     plt.plot(xticks, list(loss_final_std_dict.values()), marker = "s")
-    plt.xlabel("Number of iterations")
-    plt.ylabel("std(mse)/mean(std)")
-    plt.xticks(ticks = xticks)
+    plt.xlabel("Number of iterations", fontsize = 16)
+    plt.ylabel("MSE std / MSE mean", fontsize = 16)
+    plt.xticks(ticks = xticks, fontsize = 14)
+    plt.yticks(fontsize = 14)
     plt.grid()
     plt.show()
