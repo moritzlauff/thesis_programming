@@ -295,6 +295,11 @@ def enkf_classifier(X_train,
                                        True
                                        )
 
+        if early_stopping:
+            epoch_string = "E{}".format(str(len(mean_model_train_acc)-1))
+            file_var = re.sub("E[0-9]+", epoch_string, file_var)
+            file_model = re.sub("E[0-9]+", epoch_string, file_model)
+
         saving_dict = {}
         saving_dict["parameters"] = param_dict
         saving_dict["results"] = results_dict
@@ -557,7 +562,7 @@ def enkf_classifier_extension(extend_model,
                                        True
                                        )
 
-        epoch_string = "E{}".format(str(epochs + additional_epochs))
+        epoch_string = "E{}".format(str(len(mean_model_train_acc)-1))
         file_var = re.sub("E[0-9]+", epoch_string, setting_path)
 
         saving_dict = {}
@@ -854,6 +859,11 @@ def enkf_regressor(X_train,
                                        False
                                        )
 
+        if early_stopping:
+            epoch_string = "E{}".format(str(len(mean_model_train_mse)-1))
+            file_var = re.sub("E[0-9]+", epoch_string, file_var)
+            file_model = re.sub("E[0-9]+", epoch_string, file_model)
+
         saving_dict = {}
         saving_dict["parameters"] = param_dict
         saving_dict["results"] = results_dict
@@ -1116,7 +1126,7 @@ def enkf_regressor_extension(extend_model,
                                        False
                                        )
 
-        epoch_string = "E{}".format(str(epochs + additional_epochs))
+        epoch_string = "E{}".format(str(len(mean_model_train_mse)-1))
         file_var = re.sub("E[0-9]+", epoch_string, setting_path)
 
         saving_dict = {}

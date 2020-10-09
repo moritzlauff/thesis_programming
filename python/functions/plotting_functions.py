@@ -157,9 +157,12 @@ def nn_plot_epoch_acc(train_acc_list,
 
     """
 
+    stop_tick = int(np.ceil((len(train_acc_list) - 1) / 5) * 5)
+    num_round = int(np.ceil((len(train_acc_list) - 1) / 5) + 1)
+
     xticks = np.linspace(start = 0,
-                         stop = len(train_acc_list) - 1,
-                         num = int((len(train_acc_list) - 1) / 5 + 1))
+                         stop = stop_tick,
+                         num = num_round)
     xticks[0] = start_epoch
 
     plt.figure(figsize = (8,5))
@@ -319,9 +322,12 @@ def nn_plot_epoch_mse(train_mse_list,
 
     """
 
+    stop_tick = int(np.ceil((len(train_mse_list) - 1) / 5) * 5)
+    num_round = int(np.ceil((len(train_mse_list) - 1) / 5) + 1)
+
     xticks = np.linspace(start = 0,
-                         stop = len(train_mse_list) - 1,
-                         num = int((len(train_mse_list) - 1) / 5 + 1))
+                         stop = stop_tick,
+                         num = num_round)
     xticks[0] = start_epoch
 
     plt.figure(figsize = (8,5))
