@@ -406,7 +406,8 @@ def nn_conf_mat(y_true,
     return cm
 
 def plot_IP_loss_evolution(loss_evolution,
-                           start_iteration = 1
+                           start_iteration = 1,
+                           save = None
                            ):
 
 
@@ -417,6 +418,7 @@ def plot_IP_loss_evolution(loss_evolution,
 
     loss_evolution (list): Evolution of the loss value over each iteration.
     start_iteration (int): First iteration to be plotted. Helpful for large difference in first and last loss value.
+    save (str or None): File path for saving the plot.
 
 
     """
@@ -435,13 +437,16 @@ def plot_IP_loss_evolution(loss_evolution,
     plt.ylabel("Mean Squared Error", fontsize = 16)
     plt.xticks(ticks = xticks, fontsize = 14)
     plt.yticks(fontsize = 14)
+    if save is not None:
+        plt.savefig(save)
     plt.show()
 
 def plot_IP_loss_evolution_many(setting_dict,
                                 particle_list,
                                 start_iteration = 1,
                                 end_iteration = None, # setting_dict["iterations"]
-                                log = False
+                                log = False,
+                                save = None
                                 ):
 
 
@@ -455,6 +460,7 @@ def plot_IP_loss_evolution_many(setting_dict,
     start_iteration (int): First iteration to be plotted. Helpful for large difference in first and last loss value.
     end_iteration (int): Last iteration to be plotted. Helpful for large difference in first and last loss value.
     log (bool): Whether or not to use the logarithm of the loss in the plot. Helpful for small differences within particles.
+    save (str or None): File path for saving the plot.
 
 
     """
@@ -495,10 +501,13 @@ def plot_IP_loss_evolution_many(setting_dict,
     plt.legend(loc = "upper right")
     plt.xticks(ticks = xticks, fontsize = 14)
     plt.yticks(fontsize = 14)
+    if save is not None:
+        plt.savefig(save)
     plt.show()
 
 def plot_IP_true_false(setting_dict,
-                       final_params
+                       final_params,
+                       save = None
                        ):
 
     """ Plot the true and the predicted values of the target variable (for linear or nonlinear inverse problem).
@@ -511,6 +520,7 @@ def plot_IP_true_false(setting_dict,
             x (np.array): True parameters.
             y (np.array): True target variables.
         final_params (np.ndarray): Predicted parameters.
+        save (str or None): File path for saving the plot.
 
 
     """
@@ -519,7 +529,7 @@ def plot_IP_true_false(setting_dict,
     x = setting_dict["x"]
     y = setting_dict["y"]
 
-    plt.figure(figsize = (8,6))
+    plt.figure(figsize = (8,5))
     plt.scatter(x, y, color = "blue", s = 200, alpha = 0.5, label = "True")
     plt.scatter(x, model_func(final_params), color = "red", s = 30, label = "Predicted")
     plt.legend(loc = "upper right")
@@ -527,10 +537,14 @@ def plot_IP_true_false(setting_dict,
     plt.ylabel(r'$\mathcal{G}(\theta)$', fontsize = 16)
     plt.xticks(fontsize = 14)
     plt.yticks(fontsize = 14)
+    if save is not None:
+        plt.savefig(save)
     plt.show()
 
 def plot_IP_particle_loss(loss_evolution,
-                          loss_evolution_single_dict):
+                          loss_evolution_single_dict,
+                          save = None
+                          ):
 
     """ Plot the final loss of all particles (for linear or nonlinear inverse problem).
 
@@ -539,6 +553,7 @@ def plot_IP_particle_loss(loss_evolution,
 
     loss_evolution (list): Evolution of the loss value over each iteration.
     loss_evolution_single_dict (dict): Evolutions of loss values of all particles.
+    save (str or None): File path for saving the plot.
 
     """
 
@@ -553,10 +568,14 @@ def plot_IP_particle_loss(loss_evolution,
     plt.ylabel("Mean Squared Error", fontsize = 16)
     plt.ylim(bottom = np.min([np.min(final_mse), loss_evolution[-1]])*0.9,
              top = np.max([np.max(final_mse), loss_evolution[-1]])*1.1)
+    if save is not None:
+        plt.savefig(save)
     plt.show()
 
 def plot_IP_particle_std(setting_dict,
-                         particle_list):
+                         particle_list,
+                         save = None
+                         ):
 
     """ Plot the evolution of the standard deviation of the final losses divided by their mean of all particles w.r.t. the number of particles (for linear or nonlinear inverse problem).
 
@@ -565,6 +584,7 @@ def plot_IP_particle_std(setting_dict,
 
     setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems.
     particle_list (list): Different numbers of particles.
+    save (str or None): File path for saving the plot.
 
     """
 
@@ -585,10 +605,14 @@ def plot_IP_particle_std(setting_dict,
     plt.xticks(ticks = xticks, fontsize = 14)
     plt.yticks(fontsize = 14)
     plt.grid()
+    if save is not None:
+        plt.savefig(save)
     plt.show()
 
 def plot_IP_iteration_std(setting_dict,
-                          iteration_list):
+                          iteration_list,
+                          save = None
+                          ):
 
     """ Plot the evolution of the standard deviation of the final losses divided by their mean of all particles w.r.t. the number of iterations (for linear or nonlinear inverse problem).
 
@@ -597,6 +621,7 @@ def plot_IP_iteration_std(setting_dict,
 
     setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems.
     iteration_list (list): Different numbers of iterations.
+    save (str or None): File path for saving the plot.
 
     """
 
@@ -618,4 +643,6 @@ def plot_IP_iteration_std(setting_dict,
     plt.xticks(ticks = xticks, fontsize = 14)
     plt.yticks(fontsize = 14)
     plt.grid()
+    if save is not None:
+        plt.savefig(save)
     plt.show()
