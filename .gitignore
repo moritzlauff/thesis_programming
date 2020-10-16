@@ -13,6 +13,8 @@ python/architecture/__pycache__
 /old_tests
 /old_bike
 
+/objects/mnist
+
 # Python Cache
 .pyc
 
