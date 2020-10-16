@@ -16,6 +16,9 @@ from tensorflow.python.keras.models import Sequential
 import numpy as np
 import reproducible
 from training_callback import BatchAccuracy
+import pickle
+import os
+from saving_functions import load_objects
 
 class NNError(Exception):
     pass
@@ -190,7 +193,7 @@ def nn_save(model,
             path_name
            ):
 
-    """ Function to save a neural network model. Same as the built-in .save() method.
+    """ Function to save a neural network model and its history.
 
 
     Parameters:
@@ -203,9 +206,20 @@ def nn_save(model,
 
     model.save(path_name)
 
+    if len(model.history.history) != 0:
+        history_path = path_name.replace("models",
+                                         "objects")
+        history_path = history_path.replace(".h5",
+                                            "_history.pckl")
+        f = open(history_path, "wb")
+        pickle.dump(model.history.history,
+                    f)
+        f.close()
+
+
 def nn_load(path_name):
 
-    """ Function to load a neural network model. Same as the built-in keras.models.load_model().
+    """ Function to load a neural network model and its history.
 
 
     Parameters:
@@ -222,6 +236,39 @@ def nn_load(path_name):
     """
 
     model = tensorflow.python.keras.models.load_model(path_name)
+
+    history_path = path_name.replace("models",
+                                     "objects").\
+                                replace(".h5",
+                                        "_history.pckl")
+
+    object_path = path_name.replace("models",
+                                    "objects").\
+                                replace("h5",
+                                        "pckl")
+
+    if os.path.exists(history_path):
+        f = open(history_path, "rb")
+        model.history = pickle.load(f)
+        f.close()
+
+        model.epoch = list(np.arange(len(list(model.history.values())[0])))
+
+    if os.path.exists(object_path):
+        obj_dict = load_objects(object_path)
+        if list(obj_dict["results"].keys())[0][-3:] == "mse":
+            train_hist = obj_dict["results"]["mean_model_train_mse"]
+            test_hist = obj_dict["results"]["mean_model_test_mse"]
+            hist_dict = {"mse": train_hist,
+                         "val_mse": test_hist}
+        else:
+            train_hist = obj_dict["results"]["mean_model_train_acc"]
+            test_hist = obj_dict["results"]["mean_model_test_acc"]
+            hist_dict = {"accuracy": train_hist,
+                         "val_accuracy": test_hist}
+        model.history = hist_dict
+
+        model.epoch = list(np.arange(len(list(model.history.values())[0])))
 
     return model
 
