@@ -25,7 +25,7 @@ from enkf_functions import enkf_inverse_problem
 
 def nn_plot_acc(model,
                 title = "",
-                benchmark_line = True,
+                mean_comparison = True,
                 savefig = False,
                 file = "../img/accuracy.png"
                ):
@@ -43,15 +43,28 @@ def nn_plot_acc(model,
 
     """
 
-    xticks = np.linspace(start = 0,
-                         stop = len(np.array(model.history.epoch)),
-                         num = int((len(np.array(model.history.epoch))) / 5 + 1))
+    try:
+        model.history.history
+    except:
+        xticks = np.linspace(start = 0,
+                             stop = len(np.array(model.epoch)),
+                             num = int((len(np.array(model.epoch))) / 5 + 1))
+    else:
+        xticks = np.linspace(start = 0,
+                             stop = len(np.array(model.history.epoch)),
+                             num = int((len(np.array(model.history.epoch))) / 5 + 1))
     xticks[0] = 1
 
     plt.figure(figsize = (8,5))
-    plt.plot(np.array(model.history.epoch) + 1, model.history.history["accuracy"], label = "Training", marker = "s")
-    plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_accuracy"], label = "Testing", marker = "s")
-    if benchmark_line:
+    try:
+        model.history.history
+    except:
+        plt.plot(np.array(model.epoch) + 1, model.history["accuracy"], label = "Training", marker = "s")
+        plt.plot(np.array(model.epoch) + 1, model.history["val_accuracy"], label = "Testing", marker = "s")
+    else:
+        plt.plot(np.array(model.history.epoch) + 1, model.history.history["accuracy"], label = "Training", marker = "s")
+        plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_accuracy"], label = "Testing", marker = "s")
+    if mean_comparison:
         plt.hlines(y = 1 / model.layers[-1].output.shape[1],
                    xmin = 1,
                    xmax = len(np.array(model.history.epoch)),
@@ -71,7 +84,7 @@ def nn_plot_acc(model,
 def nn_plot_iter_acc(train_acc_list,
                      test_acc_list,
                      iteration_list,
-                     mean_comparison,
+                     mean_comparison = None,
                      num_ticks_per_epoch = 2,
                      title = "",
                      savefig = False,
@@ -136,7 +149,7 @@ def nn_plot_iter_acc(train_acc_list,
 
 def nn_plot_epoch_acc(train_acc_list,
                       test_acc_list,
-                      mean_comparison,
+                      mean_comparison = None,
                       start_epoch = 1,
                       title = "",
                       savefig = False,
@@ -188,7 +201,8 @@ def nn_plot_epoch_acc(train_acc_list,
 
 
 def nn_plot_mse(model,
-                mse_mean,       # mean_squared_error(y_train, np.ones(shape = (len(y_train),))*np.mean(y_train))
+                mse_mean = None,       # mean_squared_error(y_train, np.ones(shape = (len(y_train),))*np.mean(y_train))
+                start_epoch = 1,
                 title = "",
                 savefig = False,
                 file = "../img/mse.png"
@@ -202,6 +216,7 @@ def nn_plot_mse(model,
 
     model (tensorflow.python.keras.engine.sequential.Sequential): Some fitted model.
     mse_mean (float or None): MSE when always predicting the mean of the target.
+    start_epoch (int): Epoch to start the plot with. Helpful for better visibility if the first MSEs are much higher than the later ones.
     title (str): Title of the plot.
     savefig (bool): Whether or not to save the plot.
     file (str): Path and filename if savefig is True.
@@ -209,17 +224,32 @@ def nn_plot_mse(model,
 
     """
 
-    xticks = np.linspace(start = 0,
-                         stop = len(np.array(model.history.epoch)),
-                         num = int((len(np.array(model.history.epoch))) / 5 + 1))
+    start_epoch -= 1
+
+    try:
+        model.history.history
+    except:
+        xticks = np.linspace(start = 0,
+                             stop = len(np.array(model.epoch)),
+                             num = int((len(np.array(model.epoch))) / 5 + 1))
+    else:
+        xticks = np.linspace(start = 0,
+                             stop = len(np.array(model.history.epoch)),
+                             num = int((len(np.array(model.history.epoch))) / 5 + 1))
     xticks[0] = 1
 
     plt.figure(figsize = (8,5))
-    plt.plot(np.array(model.history.epoch) + 1, model.history.history["mse"], label = "Training", marker = "s")
-    plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_mse"], label = "Testing", marker = "s")
+    try:
+        model.history.history
+    except:
+        plt.plot(np.array(model.epoch) + 1, model.history["mse"], label = "Training", marker = "s")
+        plt.plot(np.array(model.epoch) + 1, model.history["val_mse"], label = "Testing", marker = "s")
+    else:
+        plt.plot(np.array(model.history.epoch) + 1, model.history.history["mse"], label = "Training", marker = "s")
+        plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_mse"], label = "Testing", marker = "s")
     if mse_mean is not None:
         plt.hlines(y = mse_mean,
-                   xmin = 1,
+                   xmin = start_epoch+1,
                    xmax = len(np.array(model.history.epoch)),
                    color = "black",
                    label = "Mean as prediction")
@@ -236,7 +266,7 @@ def nn_plot_mse(model,
 def nn_plot_iter_mse(train_mse_list,
                      test_mse_list,
                      iteration_list,
-                     mse_mean,          # mean_squared_error(y_train, np.ones(shape = (len(y_train),))*np.mean(y_train))
+                     mse_mean = None,          # mean_squared_error(y_train, np.ones(shape = (len(y_train),))*np.mean(y_train))
                      num_ticks_per_epoch = 2,
                      title = "",
                      savefig = False,
@@ -300,7 +330,7 @@ def nn_plot_iter_mse(train_mse_list,
 
 def nn_plot_epoch_mse(train_mse_list,
                       test_mse_list,
-                      mse_mean, # mean_squared_error(y_train, np.ones(shape = (len(y_train),))*np.mean(y_train))
+                      mse_mean = None, # mean_squared_error(y_train, np.ones(shape = (len(y_train),))*np.mean(y_train))
                       start_epoch = 1,
                       title = "",
                       savefig = False,
@@ -426,7 +456,8 @@ def plot_IP_loss_evolution(loss_evolution,
     xticks = np.linspace(start = 0,
                          stop = len(loss_evolution) - 1,
                          num = int((len(loss_evolution) - 1) / 5 + 1))
-    xticks[0] = start_iteration
+    xticks = np.delete(xticks, np.where(xticks <= start_iteration))
+    xticks = np.append(xticks, [start_iteration])
 
     plt.figure(figsize = (8,5))
     plt.plot(np.arange(len(loss_evolution))[start_iteration:],
