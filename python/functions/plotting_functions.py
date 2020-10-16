@@ -199,14 +199,82 @@ def nn_plot_epoch_acc(train_acc_list,
         plt.savefig(file)
     plt.show()
 
-
 def nn_plot_mse(model,
-                mse_mean = None,       # mean_squared_error(y_train, np.ones(shape = (len(y_train),))*np.mean(y_train))
+                mse_mean = None, # mean_squared_error(y_train, np.ones(shape = (len(y_train),))*np.mean(y_train))
                 start_epoch = 1,
                 title = "",
                 savefig = False,
-                file = "../img/mse.png"
-               ):
+                file = "../img/accuracy_per_epoch.png"
+                ):
+
+    """ Function to plot the evolution of the mean squared error of the
+    neural network per iteration.
+
+
+    Parameters:
+
+    model (tensorflow.python.keras.engine.sequential.Sequential): Some fitted model.
+    mse_mean (float or None): MSE when always predicting the mean of the target.
+    title (str): Title of the plot.
+    savefig (bool): Whether or not to save the plot.
+    file (str): Path and filename if savefig is True.
+
+
+    """
+    
+    try:
+        model.history.history
+    except:
+        # if model is loaded
+        train_mse_list = list(model.history["mse"])
+        test_mse_list = list(model.history["val_mse"])
+        if len(model.history) == 4:
+            train_mse_list = np.concatenate([[0], train_mse_list])
+            test_mse_list = np.concatenate([[0], test_mse_list])
+    else:
+        # if model is not loaded but built within the current session
+        train_mse_list = model.history.history["mse"]
+        test_mse_list = model.history.history["val_mse"]
+        train_mse_list = np.concatenate([[0], train_mse_list])
+        test_mse_list = np.concatenate([[0], test_mse_list])
+
+    stop_tick = int(np.ceil((len(train_mse_list) - 1) / 5) * 5)
+    num_round = int(np.ceil((len(train_mse_list) - 1) / 5) + 1)
+
+    xticks = np.linspace(start = 0,
+                         stop = stop_tick,
+                         num = num_round)
+    xticks = np.delete(xticks, np.where(xticks <= start_epoch))
+    xticks = np.append(xticks, [start_epoch])
+
+    plt.figure(figsize = (8,5))
+    plt.plot(np.arange(len(train_mse_list))[start_epoch:] , train_mse_list[start_epoch:], label = "Training", marker = "s")
+    plt.plot(np.arange(len(test_mse_list))[start_epoch:], test_mse_list[start_epoch:], label = "Testing", marker = "s")
+    if mse_mean is not None:
+        plt.hlines(y = mse_mean,
+                   xmin = start_epoch,
+                   xmax = len(train_mse_list) - 1,
+                   color = "black",
+                   label = "Random guessing")
+    plt.legend(loc = "upper right")
+    plt.title(title)
+    plt.xlabel("Epoch")
+    plt.ylabel("Mean Squared Error")
+    plt.xticks(ticks = xticks)
+    plt.grid()
+    if savefig:
+        plt.savefig(file)
+    plt.show()
+    
+def nn_plot_mse_many(model_list,
+                     label_list,
+                     train_test = "train",
+                     mse_mean = None,       # mean_squared_error(y_train, np.ones(shape = (len(y_train),))*np.mean(y_train))
+                     start_epoch = 1,
+                     title = "",
+                     savefig = False,
+                     file = "../img/mse.png"
+                    ):
 
     """ Function to plot the evolution of the mean squared error of
     the neural network.
@@ -214,7 +282,9 @@ def nn_plot_mse(model,
 
     Parameters:
 
-    model (tensorflow.python.keras.engine.sequential.Sequential): Some fitted model.
+    model_list (list of tensorflow.python.keras.engine.sequential.Sequential): Some fitted models.
+    label_list (list of str): Labels for the plotted model MSEs in the legend of the plot.
+    train_test (str): Which MSEs to plot. Can be either "train", "test" or "both".
     mse_mean (float or None): MSE when always predicting the mean of the target.
     start_epoch (int): Epoch to start the plot with. Helpful for better visibility if the first MSEs are much higher than the later ones.
     title (str): Title of the plot.
@@ -223,34 +293,52 @@ def nn_plot_mse(model,
 
 
     """
+    
+    train_mses_dict = {}
+    test_mses_dict = {}
+    
+    for i, model in enumerate(model_list):
+        try:
+            model.history.history
+        except:
+            # if model is loaded
+            train_mse_list = list(model.history["mse"])
+            test_mse_list = list(model.history["val_mse"])
+            if len(model.history) == 4:
+                train_mse_list = np.concatenate([[0], train_mse_list])
+                test_mse_list = np.concatenate([[0], test_mse_list])
+        else:
+            # if model is not loaded but built within the current session
+            train_mse_list = model.history.history["mse"]
+            test_mse_list = model.history.history["val_mse"]
+            train_mse_list = np.concatenate([[0], train_mse_list])
+            test_mse_list = np.concatenate([[0], test_mse_list])
+        
+        train_mses_dict["model_{}".format(str(i+1))] = train_mse_list
+        test_mses_dict["model_{}".format(str(i+1))] = test_mse_list
 
-    start_epoch -= 1
+    stop_tick = int(np.ceil((len(train_mses_dict["model_1"]) - 1) / 5) * 5)
+    num_round = int(np.ceil((len(train_mses_dict["model_1"]) - 1) / 5) + 1)
 
-    try:
-        model.history.history
-    except:
-        xticks = np.linspace(start = 0,
-                             stop = len(np.array(model.epoch)),
-                             num = int((len(np.array(model.epoch))) / 5 + 1))
-    else:
-        xticks = np.linspace(start = 0,
-                             stop = len(np.array(model.history.epoch)),
-                             num = int((len(np.array(model.history.epoch))) / 5 + 1))
-    xticks[0] = 1
+    xticks = np.linspace(start = 0,
+                         stop = stop_tick,
+                         num = num_round)
+    xticks = np.delete(xticks, np.where(xticks <= start_epoch))
+    xticks = np.append(xticks, [start_epoch])
 
     plt.figure(figsize = (8,5))
-    try:
-        model.history.history
-    except:
-        plt.plot(np.array(model.epoch) + 1, model.history["mse"], label = "Training", marker = "s")
-        plt.plot(np.array(model.epoch) + 1, model.history["val_mse"], label = "Testing", marker = "s")
-    else:
-        plt.plot(np.array(model.history.epoch) + 1, model.history.history["mse"], label = "Training", marker = "s")
-        plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_mse"], label = "Testing", marker = "s")
+    for i in range(len(model_list)):
+        if train_test == "train":
+            plt.plot(np.arange(len(train_mses_dict["model_{}".format(str(i+1))]))[start_epoch:] , train_mses_dict["model_{}".format(str(i+1))][start_epoch:], label = label_list[i])
+        elif train_test == "test":    
+            plt.plot(np.arange(len(test_mses_dict["model_{}".format(str(i+1))]))[start_epoch:] , test_mses_dict["model_{}".format(str(i+1))][start_epoch:], label = label_list[i])
+        elif train_test == "both":
+            plt.plot(np.arange(len(train_mses_dict["model_{}".format(str(i+1))]))[start_epoch:] , train_mses_dict["model_{}".format(str(i+1))][start_epoch:], label = label_list[i])
+            plt.plot(np.arange(len(test_mses_dict["model_{}".format(str(i+1))]))[start_epoch:] , test_mses_dict["model_{}".format(str(i+1))][start_epoch:], label = label_list[i])
     if mse_mean is not None:
         plt.hlines(y = mse_mean,
-                   xmin = start_epoch+1,
-                   xmax = len(np.array(model.history.epoch)),
+                   xmin = start_epoch,
+                   xmax = len(train_mses_dict["model_1"])-1,
                    color = "black",
                    label = "Mean as prediction")
     plt.legend(loc = "upper right")
@@ -676,4 +764,86 @@ def plot_IP_iteration_std(setting_dict,
     plt.grid()
     if save is not None:
         plt.savefig(save)
+    plt.show()
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+def nn_plot_mse_old(model,
+                mse_mean = None,       # mean_squared_error(y_train, np.ones(shape = (len(y_train),))*np.mean(y_train))
+                start_epoch = 1,
+                title = "",
+                savefig = False,
+                file = "../img/mse.png"
+               ):
+
+    """ Function to plot the evolution of the mean squared error of
+    the neural network.
+
+
+    Parameters:
+
+    model (tensorflow.python.keras.engine.sequential.Sequential): Some fitted model.
+    mse_mean (float or None): MSE when always predicting the mean of the target.
+    start_epoch (int): Epoch to start the plot with. Helpful for better visibility if the first MSEs are much higher than the later ones.
+    title (str): Title of the plot.
+    savefig (bool): Whether or not to save the plot.
+    file (str): Path and filename if savefig is True.
+
+
+    """
+
+    start_epoch -= 1
+
+    try:
+        model.history.history
+    except:
+        xticks = np.linspace(start = 0,
+                             stop = len(np.array(model.epoch)),
+                             num = int((len(np.array(model.epoch))) / 5 + 1))
+    else:
+        xticks = np.linspace(start = 0,
+                             stop = len(np.array(model.history.epoch)),
+                             num = int((len(np.array(model.history.epoch))) / 5 + 1))
+    xticks[0] = 1
+
+    plt.figure(figsize = (8,5))
+    try:
+        model.history.history
+    except:
+        plt.plot(np.array(model.epoch) + 1, model.history["mse"], label = "Training", marker = "s")
+        plt.plot(np.array(model.epoch) + 1, model.history["val_mse"], label = "Testing", marker = "s")
+    else:
+        plt.plot(np.array(model.history.epoch) + 1, model.history.history["mse"], label = "Training", marker = "s")
+        plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_mse"], label = "Testing", marker = "s")
+    if mse_mean is not None:
+        plt.hlines(y = mse_mean,
+                   xmin = start_epoch+1,
+                   xmax = len(np.array(model.history.epoch)),
+                   color = "black",
+                   label = "Mean as prediction")
+    plt.legend(loc = "upper right")
+    plt.title(title)
+    plt.xlabel("Epoch")
+    plt.ylabel("Mean Squared Error")
+    plt.xticks(ticks = xticks)
+    plt.grid()
+    if savefig:
+        plt.savefig(file)
     plt.show()
