@@ -1,8 +1,10 @@
 # functions:
 #   nn_plot_acc
+#   nn_plot_acc_many
 #   nn_plot_iter_acc
 #   nn_plot_epoch_acc
 #   nn_plot_mse
+#   nn_plot_mse_many
 #   nn_plot_iter_mse
 #   nn_plot_epoch_mse
 #   nn_conf_mat
@@ -12,6 +14,7 @@
 #   plot_IP_particle_loss
 #   plot_IP_particle_std
 #   plot_IP_iteration_std
+#   nn_plot_mse_old
 
 import sys
 sys.path.insert(1, "../architecture")
@@ -24,8 +27,9 @@ import seaborn as sns
 from enkf_functions import enkf_inverse_problem
 
 def nn_plot_acc(model,
+                mean_comparison = None,
+                start_epoch = 1,
                 title = "",
-                mean_comparison = True,
                 savefig = False,
                 file = "../img/accuracy.png"
                ):
@@ -36,6 +40,8 @@ def nn_plot_acc(model,
     Parameters:
 
     model (tensorflow.python.keras.engine.sequential.Sequential): Some fitted model.
+    mean_comparison (float or None): Accuracy when always guessing at random. 
+    start_epoch (int): First epoch to be plotted. Helpful for large difference in first and last loss value.
     title (str): Title of the plot.
     savefig (bool): Whether or not to save the plot.
     file (str): Path and filename if savefig is True.
@@ -46,28 +52,35 @@ def nn_plot_acc(model,
     try:
         model.history.history
     except:
-        xticks = np.linspace(start = 0,
-                             stop = len(np.array(model.epoch)),
-                             num = int((len(np.array(model.epoch))) / 5 + 1))
+        # if model is loaded
+        train_acc_list = list(model.history["accuracy"])
+        test_acc_list = list(model.history["val_accuracy"])
+        if len(model.history) == 4:
+            train_acc_list = np.concatenate([[0], train_acc_list])
+            test_acc_list = np.concatenate([[0], test_acc_list])
     else:
-        xticks = np.linspace(start = 0,
-                             stop = len(np.array(model.history.epoch)),
-                             num = int((len(np.array(model.history.epoch))) / 5 + 1))
-    xticks[0] = 1
+        # if model is not loaded but built within the current session
+        train_acc_list = model.history.history["accuracy"]
+        test_acc_list = model.history.history["val_accuracy"]
+        train_acc_list = np.concatenate([[0], train_acc_list])
+        test_acc_list = np.concatenate([[0], test_acc_list])
+
+    stop_tick = int(np.ceil((len(train_acc_list) - 1) / 5) * 5)
+    num_round = int(np.ceil((len(train_acc_list) - 1) / 5) + 1)
+
+    xticks = np.linspace(start = 0,
+                         stop = stop_tick,
+                         num = num_round)
+    xticks = np.delete(xticks, np.where(xticks <= start_epoch))
+    xticks = np.append(xticks, [start_epoch])
 
     plt.figure(figsize = (8,5))
-    try:
-        model.history.history
-    except:
-        plt.plot(np.array(model.epoch) + 1, model.history["accuracy"], label = "Training", marker = "s")
-        plt.plot(np.array(model.epoch) + 1, model.history["val_accuracy"], label = "Testing", marker = "s")
-    else:
-        plt.plot(np.array(model.history.epoch) + 1, model.history.history["accuracy"], label = "Training", marker = "s")
-        plt.plot(np.array(model.history.epoch) + 1, model.history.history["val_accuracy"], label = "Testing", marker = "s")
-    if mean_comparison:
-        plt.hlines(y = 1 / model.layers[-1].output.shape[1],
-                   xmin = 1,
-                   xmax = len(np.array(model.history.epoch)),
+    plt.plot(np.arange(len(train_acc_list))[start_epoch:] , train_acc_list[start_epoch:], label = "Training", marker = "s")
+    plt.plot(np.arange(len(test_acc_list))[start_epoch:], test_acc_list[start_epoch:], label = "Testing", marker = "s")
+    if mean_comparison is not None:
+        plt.hlines(y = mean_comparison,
+                   xmin = start_epoch,
+                   xmax = len(train_acc_list) - 1,
                    color = "black",
                    label = "Random guessing")
     plt.legend(loc = "lower right")
@@ -76,6 +89,96 @@ def nn_plot_acc(model,
     plt.ylabel("Accuracy")
     plt.xticks(ticks = xticks)
     plt.yticks(ticks = np.array([0, 0.2, 0.4, 0.6, 0.8, 1]))
+    plt.ylim(top = 1.1,
+             bottom = -0.1)
+    plt.grid()
+    if savefig:
+        plt.savefig(file)
+    plt.show()
+    
+def nn_plot_acc_many(model_list,
+                     label_list,
+                     train_test = "train",
+                     mean_comparison = None,       
+                     start_epoch = 1,
+                     title = "",
+                     savefig = False,
+                     file = "../img/mse.png"
+                    ):
+
+    """ Function to plot the evolution of the mean squared error of
+    the neural network.
+
+
+    Parameters:
+
+    model_list (list of tensorflow.python.keras.engine.sequential.Sequential): Some fitted models.
+    label_list (list of str): Labels for the plotted model MSEs in the legend of the plot.
+    train_test (str): Which MSEs to plot. Can be either "train", "test" or "both".
+    mean_comparison (float or None): Accuracy when always guessing at random. 
+    start_epoch (int): Epoch to start the plot with. Helpful for better visibility if the first MSEs are much higher than the later ones.
+    title (str): Title of the plot.
+    savefig (bool): Whether or not to save the plot.
+    file (str): Path and filename if savefig is True.
+
+
+    """
+    
+    train_accs_dict = {}
+    test_accs_dict = {}
+    
+    for i, model in enumerate(model_list):
+        try:
+            model.history.history
+        except:
+            # if model is loaded
+            train_acc_list = list(model.history["accuracy"])
+            test_acc_list = list(model.history["val_accuracy"])
+            if len(model.history) == 4:
+                train_acc_list = np.concatenate([[0], train_acc_list])
+                test_acc_list = np.concatenate([[0], test_acc_list])
+        else:
+            # if model is not loaded but built within the current session
+            train_acc_list = model.history.history["accuracy"]
+            test_acc_list = model.history.history["val_accuracy"]
+            train_acc_list = np.concatenate([[0], train_acc_list])
+            test_acc_list = np.concatenate([[0], test_acc_list])
+        
+        train_accs_dict["model_{}".format(str(i+1))] = train_acc_list
+        test_accs_dict["model_{}".format(str(i+1))] = test_acc_list
+
+    stop_tick = int(np.ceil((len(train_accs_dict["model_1"]) - 1) / 5) * 5)
+    num_round = int(np.ceil((len(train_accs_dict["model_1"]) - 1) / 5) + 1)
+
+    xticks = np.linspace(start = 0,
+                         stop = stop_tick,
+                         num = num_round)
+    xticks = np.delete(xticks, np.where(xticks <= start_epoch))
+    xticks = np.append(xticks, [start_epoch])
+
+    plt.figure(figsize = (8,5))
+    for i in range(len(model_list)):
+        if train_test == "train":
+            plt.plot(np.arange(len(train_accs_dict["model_{}".format(str(i+1))]))[start_epoch:] , train_accs_dict["model_{}".format(str(i+1))][start_epoch:], label = label_list[i])
+        elif train_test == "test":    
+            plt.plot(np.arange(len(test_accs_dict["model_{}".format(str(i+1))]))[start_epoch:] , test_accs_dict["model_{}".format(str(i+1))][start_epoch:], label = label_list[i])
+        elif train_test == "both":
+            plt.plot(np.arange(len(train_accs_dict["model_{}".format(str(i+1))]))[start_epoch:] , train_accs_dict["model_{}".format(str(i+1))][start_epoch:], label = label_list[i])
+            plt.plot(np.arange(len(test_accs_dict["model_{}".format(str(i+1))]))[start_epoch:] , test_accs_dict["model_{}".format(str(i+1))][start_epoch:], label = label_list[i])
+    if mean_comparison is not None:
+        plt.hlines(y = mean_comparison,
+                   xmin = start_epoch,
+                   xmax = len(train_accs_dict["model_1"])-1,
+                   color = "black",
+                   label = "Random guessing")
+    plt.legend(loc = "lower right")
+    plt.title(title)
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
+    plt.xticks(ticks = xticks)
+    plt.yticks(ticks = np.array([0, 0.2, 0.4, 0.6, 0.8, 1]))
+    plt.ylim(top = 1.1,
+             bottom = -0.1)
     plt.grid()
     if savefig:
         plt.savefig(file)
@@ -215,6 +318,7 @@ def nn_plot_mse(model,
 
     model (tensorflow.python.keras.engine.sequential.Sequential): Some fitted model.
     mse_mean (float or None): MSE when always predicting the mean of the target.
+    start_epoch (int): First epoch to be plotted. Helpful for large difference in first and last loss value.
     title (str): Title of the plot.
     savefig (bool): Whether or not to save the plot.
     file (str): Path and filename if savefig is True.
