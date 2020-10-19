@@ -581,7 +581,7 @@ def enkf_classifier_extension(extend_model,
         nn_save(model = mean_model,
                 path_name = file_model)
 
-    return mean_model, mean_model_train_acc, mean_model_test_acc
+    return mean_model
 
 def enkf_regressor(X_train,
                    X_test,
@@ -1150,7 +1150,7 @@ def enkf_regressor_extension(extend_model,
         nn_save(model = mean_model,
                 path_name = file_model)
 
-    return mean_model, mean_model_train_mse, mean_model_test_mse
+    return mean_model
 
 def enkf_inverse_problem(setting_dict
                         ):
