@@ -206,15 +206,14 @@ def nn_save(model,
 
     model.save(path_name)
 
-    if len(model.history.history) != 0:
-        history_path = path_name.replace("models",
-                                         "objects")
-        history_path = history_path.replace(".h5",
-                                            "_history.pckl")
-        f = open(history_path, "wb")
-        pickle.dump(model.history.history,
-                    f)
-        f.close()
+    history_path = path_name.replace("models",
+                                     "objects")
+    history_path = history_path.replace(".h5",
+                                        "_history.pckl")
+    f = open(history_path, "wb")
+    pickle.dump(model.history.history,
+                f)
+    f.close()
 
 
 def nn_load(path_name):

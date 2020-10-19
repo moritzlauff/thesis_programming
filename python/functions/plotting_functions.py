@@ -40,7 +40,7 @@ def nn_plot_acc(model,
     Parameters:
 
     model (tensorflow.python.keras.engine.sequential.Sequential): Some fitted model.
-    mean_comparison (float or None): Accuracy when always guessing at random. 
+    mean_comparison (float or None): Accuracy when always guessing at random.
     start_epoch (int): First epoch to be plotted. Helpful for large difference in first and last loss value.
     title (str): Title of the plot.
     savefig (bool): Whether or not to save the plot.
@@ -95,11 +95,11 @@ def nn_plot_acc(model,
     if savefig:
         plt.savefig(file)
     plt.show()
-    
+
 def nn_plot_acc_many(model_list,
                      label_list,
                      train_test = "train",
-                     mean_comparison = None,       
+                     mean_comparison = None,
                      start_epoch = 1,
                      title = "",
                      savefig = False,
@@ -115,7 +115,7 @@ def nn_plot_acc_many(model_list,
     model_list (list of tensorflow.python.keras.engine.sequential.Sequential): Some fitted models.
     label_list (list of str): Labels for the plotted model MSEs in the legend of the plot.
     train_test (str): Which MSEs to plot. Can be either "train", "test" or "both".
-    mean_comparison (float or None): Accuracy when always guessing at random. 
+    mean_comparison (float or None): Accuracy when always guessing at random.
     start_epoch (int): Epoch to start the plot with. Helpful for better visibility if the first MSEs are much higher than the later ones.
     title (str): Title of the plot.
     savefig (bool): Whether or not to save the plot.
@@ -123,10 +123,10 @@ def nn_plot_acc_many(model_list,
 
 
     """
-    
+
     train_accs_dict = {}
     test_accs_dict = {}
-    
+
     for i, model in enumerate(model_list):
         try:
             model.history.history
@@ -143,7 +143,7 @@ def nn_plot_acc_many(model_list,
             test_acc_list = model.history.history["val_accuracy"]
             train_acc_list = np.concatenate([[0], train_acc_list])
             test_acc_list = np.concatenate([[0], test_acc_list])
-        
+
         train_accs_dict["model_{}".format(str(i+1))] = train_acc_list
         test_accs_dict["model_{}".format(str(i+1))] = test_acc_list
 
@@ -160,7 +160,7 @@ def nn_plot_acc_many(model_list,
     for i in range(len(model_list)):
         if train_test == "train":
             plt.plot(np.arange(len(train_accs_dict["model_{}".format(str(i+1))]))[start_epoch:] , train_accs_dict["model_{}".format(str(i+1))][start_epoch:], label = label_list[i])
-        elif train_test == "test":    
+        elif train_test == "test":
             plt.plot(np.arange(len(test_accs_dict["model_{}".format(str(i+1))]))[start_epoch:] , test_accs_dict["model_{}".format(str(i+1))][start_epoch:], label = label_list[i])
         elif train_test == "both":
             plt.plot(np.arange(len(train_accs_dict["model_{}".format(str(i+1))]))[start_epoch:] , train_accs_dict["model_{}".format(str(i+1))][start_epoch:], label = label_list[i])
@@ -325,7 +325,7 @@ def nn_plot_mse(model,
 
 
     """
-    
+
     try:
         model.history.history
     except:
@@ -369,7 +369,7 @@ def nn_plot_mse(model,
     if savefig:
         plt.savefig(file)
     plt.show()
-    
+
 def nn_plot_mse_many(model_list,
                      label_list,
                      train_test = "train",
@@ -397,10 +397,10 @@ def nn_plot_mse_many(model_list,
 
 
     """
-    
+
     train_mses_dict = {}
     test_mses_dict = {}
-    
+
     for i, model in enumerate(model_list):
         try:
             model.history.history
@@ -417,7 +417,7 @@ def nn_plot_mse_many(model_list,
             test_mse_list = model.history.history["val_mse"]
             train_mse_list = np.concatenate([[0], train_mse_list])
             test_mse_list = np.concatenate([[0], test_mse_list])
-        
+
         train_mses_dict["model_{}".format(str(i+1))] = train_mse_list
         test_mses_dict["model_{}".format(str(i+1))] = test_mse_list
 
@@ -434,7 +434,7 @@ def nn_plot_mse_many(model_list,
     for i in range(len(model_list)):
         if train_test == "train":
             plt.plot(np.arange(len(train_mses_dict["model_{}".format(str(i+1))]))[start_epoch:] , train_mses_dict["model_{}".format(str(i+1))][start_epoch:], label = label_list[i])
-        elif train_test == "test":    
+        elif train_test == "test":
             plt.plot(np.arange(len(test_mses_dict["model_{}".format(str(i+1))]))[start_epoch:] , test_mses_dict["model_{}".format(str(i+1))][start_epoch:], label = label_list[i])
         elif train_test == "both":
             plt.plot(np.arange(len(train_mses_dict["model_{}".format(str(i+1))]))[start_epoch:] , train_mses_dict["model_{}".format(str(i+1))][start_epoch:], label = label_list[i])
@@ -869,26 +869,26 @@ def plot_IP_iteration_std(setting_dict,
     if save is not None:
         plt.savefig(save)
     plt.show()
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def nn_plot_mse_old(model,
                 mse_mean = None,       # mean_squared_error(y_train, np.ones(shape = (len(y_train),))*np.mean(y_train))
                 start_epoch = 1,

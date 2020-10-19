@@ -60,8 +60,6 @@ def enkf_classifier(X_train,
     Returns:
 
     mean_model (tensorflow.python.keras.engine.sequential.Sequential): The final model.
-    mean_model_train_acc (list): Training accuracies of the averaged model after each epoch.
-    mean_model_test_acc (list): Test accuracies of the averaged model after each epoch.
 
     """
 
@@ -268,6 +266,9 @@ def enkf_classifier(X_train,
                                                                                np.round(mean_model_train_acc[-1], 3),
                                                                                np.round(mean_model_test_acc[-1], 3)))
 
+    mean_model.history.history = {"accuracy": mean_model_train_acc[1:],
+                                  "val_accuracy": mean_model_test_acc[1:]}
+
     if save_all:
         param_dict = param_to_dict(X_train,
                                    X_test,
@@ -310,7 +311,7 @@ def enkf_classifier(X_train,
         nn_save(model = mean_model,
                 path_name = file_model)
 
-    return mean_model, mean_model_train_acc, mean_model_test_acc
+    return mean_model
 
 def enkf_classifier_extension(extend_model,
                               additional_epochs,
@@ -535,6 +536,9 @@ def enkf_classifier_extension(extend_model,
                                                                      np.round(mean_model_train_acc[-1], 3),
                                                                      np.round(mean_model_test_acc[-1], 3)))
 
+    mean_model.history.history = {"accuracy": mean_model_train_acc[1:],
+                                  "val_accuracy": mean_model_test_acc[1:]}
+
     if save_all:
         param_dict = param_to_dict(X_train,
                                    X_test,
@@ -623,8 +627,6 @@ def enkf_regressor(X_train,
     Returns:
 
     mean_model (tensorflow.python.keras.engine.sequential.Sequential): The final model.
-    mean_model_train_mse (list): Training accuracies of the averaged model after each epoch.
-    mean_model_test_mse (list): Test accuracies of the averaged model after each epoch.
 
     """
 
@@ -832,6 +834,9 @@ def enkf_regressor(X_train,
                                                                      np.round(mean_model_train_mse[-1], 3),
                                                                      np.round(mean_model_test_mse[-1], 3)))
 
+    mean_model.history.history = {"mse": mean_model_train_mse[1:],
+                                  "val_mse": mean_model_test_mse[1:]}
+
     if save_all:
         param_dict = param_to_dict(X_train,
                                    X_test,
@@ -871,10 +876,11 @@ def enkf_regressor(X_train,
         save_objects(obj_dict = saving_dict,
                      file = file_var)
 
+
         nn_save(model = mean_model,
                 path_name = file_model)
 
-    return mean_model, mean_model_train_mse, mean_model_test_mse
+    return mean_model
 
 def enkf_regressor_extension(extend_model,
                              additional_epochs,
@@ -1098,6 +1104,9 @@ def enkf_regressor_extension(extend_model,
             print("Epoch {}. Training MSE: {}, Test MSE: {}.".format(epoch+1,
                                                                      np.round(mean_model_train_mse[-1], 3),
                                                                      np.round(mean_model_test_mse[-1], 3)))
+
+    mean_model.history.history = {"mse": mean_model_train_mse[1:],
+                                  "val_mse": mean_model_test_mse[1:]}
 
     if save_all:
         param_dict = param_to_dict(X_train,
