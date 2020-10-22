@@ -1196,17 +1196,20 @@ def enkf_inverse_problem(setting_dict
     if noise and any(std == None):
         raise ValueError("If noise is True, then std can not be None.")
 
+    if noise:
+        gamma_HM12 = np.sqrt(np.linalg.inv(np.diag(std)))
+
     def loss(y_true, y_pred):
         if not noise:
             return mean_squared_error(y_true, y_pred)
         else:
-            return np.mean(np.dot(np.sqrt(np.linalg.inv(np.diag(std))), y_true - y_pred)**2)
+            return np.mean(np.dot(gamma_HM12, y_true - y_pred)**2)
 
     def grad_loss(y_true, y_pred):
         if not noise:
             return (-2) / y_true.shape[0] * (y_true - y_pred)
         else:
-            return (-2) / y_true.shape[0] * np.diag(np.sqrt(np.linalg.inv(np.diag(std)))) * (y_true - y_pred)
+            return (-2) / y_true.shape[0] * np.diag(gamma_HM12) * (y_true - y_pred)
 
     param_dict = {}
     y_pred_dict = {}

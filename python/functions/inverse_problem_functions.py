@@ -34,8 +34,8 @@ def y_noise(model_func,
     else:
         std = np.absolute(np.random.normal(loc = 0,
                           scale = 0.5,
-                          size = (x.shape[0], )))
+                          size = (model_func(x).shape[0], )))
         y = model_func(x) + np.random.normal(loc = 0,
                                              scale = std,
-                                             size = (x.shape[0], ))
+                                             size = (model_func(x).shape[0], ))
         return y, std
