@@ -144,7 +144,7 @@ def enkf_classifier(X_train,
                 test_acc_new = mean_model_test_acc[epoch]
                 if np.absolute(test_acc_new - test_acc_old) <= early_stopping_diff and np.absolute(train_acc_new - train_acc_old) <= early_stopping_diff:
                     print("STOP: Early Stopping after epoch {} because improvement in training accuracy is only {} and in test accuracy only {}."\
-                                                                         .format(epoch+1, train_acc_new - train_acc_old, test_acc_new - test_acc_old))
+                                                                         .format(epoch, train_acc_new - train_acc_old, test_acc_new - test_acc_old))
                     break
                 test_acc_old = test_acc_new
 
@@ -415,7 +415,7 @@ def enkf_classifier_extension(extend_model,
                 test_acc_new = mean_model_test_acc[epoch]
                 if np.absolute(test_acc_new - test_acc_old) <= early_stopping_diff and np.absolute(train_acc_new - train_acc_old) <= early_stopping_diff:
                     print("STOP: Early Stopping after epoch {} because improvement in training accuracy is only {} and in test accuracy only {}."\
-                                                                         .format(epoch+1, train_acc_new - train_acc_old, test_acc_new - test_acc_old))
+                                                                         .format(epoch, train_acc_new - train_acc_old, test_acc_new - test_acc_old))
                     break
                 test_acc_old = test_acc_new
 
@@ -713,7 +713,7 @@ def enkf_regressor(X_train,
                 test_mse_new = mean_model_test_mse[epoch]
                 if np.absolute(test_mse_new - test_mse_old) <= early_stopping_diff and np.absolute(train_mse_new - train_mse_old) <= early_stopping_diff:
                     print("STOP: Early Stopping after epoch {} because improvement in training mse is only {} and in test mse only {}."\
-                                                                         .format(epoch+1, train_mse_new - train_mse_old, test_mse_new - test_mse_old))
+                                                                         .format(epoch, train_mse_new - train_mse_old, test_mse_new - test_mse_old))
                     break
                 test_mse_old = test_mse_new
 
@@ -984,7 +984,7 @@ def enkf_regressor_extension(extend_model,
                 test_mse_new = mean_model_test_mse[epoch]
                 if np.absolute(test_mse_new - test_mse_old) <= early_stopping_diff and np.absolute(train_mse_new - train_mse_old) <= early_stopping_diff:
                     print("STOP: Early Stopping after epoch {} because improvement in training mse is only {} and in test mse only {}."\
-                                                                         .format(epoch+1, train_mse_new - train_mse_old, test_mse_new - test_mse_old))
+                                                                         .format(epoch, train_mse_new - train_mse_old, test_mse_new - test_mse_old))
                     break
                 test_mse_old = test_mse_new
 
