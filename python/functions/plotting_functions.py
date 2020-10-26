@@ -629,6 +629,7 @@ def nn_conf_mat(y_true,
 
 def plot_IP_loss_evolution(loss_evolution,
                            start_iteration = 1,
+                           xlabel = "Iteration",
                            save = None
                            ):
 
@@ -640,6 +641,7 @@ def plot_IP_loss_evolution(loss_evolution,
 
     loss_evolution (list): Evolution of the loss value over each iteration.
     start_iteration (int): First iteration to be plotted. Helpful for large difference in first and last loss value.
+    xlabel (str): Label of the x-axis. Should be either "Iteration" or "Epoch".
     save (str or None): File path for saving the plot.
 
 
@@ -656,7 +658,7 @@ def plot_IP_loss_evolution(loss_evolution,
              loss_evolution[start_iteration:],
              marker = "s")
     plt.grid()
-    plt.xlabel("Iteration", fontsize = 16)
+    plt.xlabel(xlabel, fontsize = 16)
     plt.ylabel("Mean Squared Error", fontsize = 16)
     plt.xticks(ticks = xticks, fontsize = 14)
     plt.yticks(fontsize = 14)
@@ -669,6 +671,7 @@ def plot_IP_loss_evolution_many(setting_dict,
                                 start_iteration = 1,
                                 end_iteration = None, # setting_dict["iterations"]
                                 log = False,
+                                xlabel = "Iteration",
                                 save = None
                                 ):
 
@@ -683,6 +686,7 @@ def plot_IP_loss_evolution_many(setting_dict,
     start_iteration (int): First iteration to be plotted. Helpful for large difference in first and last loss value.
     end_iteration (int): Last iteration to be plotted. Helpful for large difference in first and last loss value.
     log (bool): Whether or not to use the logarithm of the loss in the plot. Helpful for small differences within particles.
+    xlabel (str): Label of the x-axis. Should be either "Iteration" or "Epoch".
     save (str or None): File path for saving the plot.
 
 
@@ -716,7 +720,7 @@ def plot_IP_loss_evolution_many(setting_dict,
                      list(loss_evolution_dict.values())[i][start_iteration:end_iteration+1],
                      label = list(loss_evolution_dict.keys())[i])
     plt.grid()
-    plt.xlabel("Iteration", fontsize = 16)
+    plt.xlabel(xlabel, fontsize = 16)
     if log:
         plt.ylabel("Log of the Mean Squared Error", fontsize = 16)
     else:
@@ -834,6 +838,7 @@ def plot_IP_particle_std(setting_dict,
 
 def plot_IP_iteration_std(setting_dict,
                           iteration_list,
+                          xlabel = "Iteration",
                           save = None
                           ):
 
@@ -844,6 +849,7 @@ def plot_IP_iteration_std(setting_dict,
 
     setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems.
     iteration_list (list): Different numbers of iterations.
+    xlabel (str): Label of the x-axis. Should be either "Iteration" or "Epoch".
     save (str or None): File path for saving the plot.
 
     """
@@ -861,7 +867,7 @@ def plot_IP_iteration_std(setting_dict,
 
     plt.figure(figsize = (8,5))
     plt.plot(xticks, list(loss_final_std_dict.values()), marker = "s")
-    plt.xlabel("Number of iterations", fontsize = 16)
+    plt.xlabel("Number of {}s".format(xlabel.lower()), fontsize = 16)
     plt.ylabel("MSE std / MSE mean", fontsize = 16)
     plt.xticks(ticks = xticks, fontsize = 14)
     plt.yticks(fontsize = 14)
