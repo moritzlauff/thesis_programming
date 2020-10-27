@@ -8,6 +8,7 @@
 #   nn_plot_iter_mse
 #   nn_plot_epoch_mse
 #   nn_conf_mat
+#   nn_plot_particle_mse
 #   plot_IP_loss_evolution
 #   plot_IP_loss_evolution_many
 #   plot_IP_true_false
@@ -25,6 +26,8 @@ import reproducible
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 from enkf_functions import enkf_inverse_problem
+from saving_functions import load_objects
+from model_functions import nn_model_structure, nn_model_compile
 
 def nn_plot_acc(model,
                 mean_comparison = None,
@@ -626,6 +629,70 @@ def nn_conf_mat(y_true,
         plt.show()
 
     return cm
+
+def nn_plot_particle_mse(model_object_path,
+                         train_test = "train",
+                         rel_limit_exceed = 0.01,
+                         return_mses = False,
+                         save = None
+                         ):
+
+    """ Plot the final MSEs of all particles.
+
+
+    Parameters:
+
+    model_object_path (str): File path to .pckl-file with the models objects.
+    train_test (str): Whether to plot the training or test MSE. Must be either "train" or "test".
+    rel_limit_exceed (float): Percentage to exceed the axis limits by.
+    save (str or None): File path for saving the plot.
+
+    """
+    
+    obj_dict = load_objects(model_object_path)
+    
+    model = nn_model_structure(layers = obj_dict["parameters"]["layers"],
+                               neurons = obj_dict["parameters"]["neurons"],
+                               n_cols = obj_dict["parameters"]["X_train"].shape[1],
+                               classification = False)
+    model = nn_model_compile(model,
+                             optimizer = "sgd")
+
+    final_train_mse = []
+    final_test_mse = []
+    weights_dict = obj_dict["results"]["weights_dict"]
+    
+    for i in range(obj_dict["parameters"]["particles"]):
+        model.set_weights(weights_dict["model_{}".format(i+1)])
+        final_train_mse.append(model.evaluate(obj_dict["parameters"]["X_train"], obj_dict["parameters"]["y_train"], verbose = 0)[1])
+        final_test_mse.append(model.evaluate(obj_dict["parameters"]["X_test"], obj_dict["parameters"]["y_test"], verbose = 0)[1])
+
+    if train_test == "train":
+        plt.figure(figsize = (8,5))
+        plt.scatter(np.arange(len(final_train_mse))+1, final_train_mse, alpha = 0.5, label = "Particle")
+        plt.hlines(y = obj_dict["results"]["mean_model_train_mse"][-1], xmin = 1, xmax = len(final_train_mse), color = "black", label = "Mean Particle")
+        plt.xticks([], [])
+        plt.yticks(fontsize = 14)
+        plt.legend(loc = "upper right")
+        plt.ylabel("Training Mean Squared Error", fontsize = 16)
+        plt.ylim(bottom = np.min([np.min(final_train_mse), obj_dict["results"]["mean_model_train_mse"][-1]])*(1-rel_limit_exceed),
+                 top = np.max([np.max(final_train_mse), obj_dict["results"]["mean_model_train_mse"][-1]])*(1+rel_limit_exceed))
+    elif train_test == "test":
+        plt.figure(figsize = (8,5))
+        plt.scatter(np.arange(len(final_test_mse))+1, final_test_mse, alpha = 0.5, label = "Particle")
+        plt.hlines(y = obj_dict["results"]["mean_model_test_mse"][-1], xmin = 1, xmax = len(final_test_mse), color = "black", label = "Mean Particle")
+        plt.xticks([], [])
+        plt.yticks(fontsize = 14)
+        plt.legend(loc = "upper right")
+        plt.ylabel("Test Mean Squared Error", fontsize = 16)
+        plt.ylim(bottom = np.min([np.min(final_test_mse), obj_dict["results"]["mean_model_test_mse"][-1]])*(1-rel_limit_exceed),
+                 top = np.max([np.max(final_test_mse), obj_dict["results"]["mean_model_test_mse"][-1]])*(1+rel_limit_exceed))
+    if save is not None:
+        plt.savefig(save)
+    plt.show()
+    
+    if return_mses:
+        return final_train_mse, final_test_mse
 
 def plot_IP_loss_evolution(loss_evolution,
                            start_iteration = 1,
