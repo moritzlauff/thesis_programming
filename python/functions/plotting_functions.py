@@ -8,6 +8,7 @@
 #   nn_plot_iter_mse
 #   nn_plot_epoch_mse
 #   nn_conf_mat
+#   nn_plot_particle_acc
 #   nn_plot_particle_mse
 #   plot_IP_loss_evolution
 #   plot_IP_loss_evolution_many
@@ -28,6 +29,7 @@ import seaborn as sns
 from enkf_functions import enkf_inverse_problem
 from saving_functions import load_objects
 from model_functions import nn_model_structure, nn_model_compile
+from data_prep_functions import mnist_prep
 
 def nn_plot_acc(model,
                 mean_comparison = None,
@@ -630,6 +632,86 @@ def nn_conf_mat(y_true,
 
     return cm
 
+def nn_plot_particle_acc(model_object_path,
+                         train_test = "train",
+                         rel_limit_exceed = 0.001,
+                         return_accs = False,
+                         save = None
+                         ):
+
+    """ Plot the final accuracies of all particles.
+
+
+    Parameters:
+
+    model_object_path (str): File path to .pckl-file with the models objects.
+    train_test (str): Whether to plot the training or test accuracy. Must be either "train" or "test".
+    rel_limit_exceed (float): Percentage to exceed the axis limits by.
+    return_mses (bool): Whether or not to return the particle accuracies.
+    save (str or None): File path for saving the plot.
+    
+    
+    
+    Returns:
+    
+    final_train_acc (list): List of the particle trianing accuracies, if return_accs is True.
+    final_test_acc (list): List of the particle test accuracies, if return_accs is True.
+    
+    """
+    
+    obj_dict = load_objects(model_object_path)
+    
+    if "mnist" in model_object_path:
+        X_train, X_test, y_train, y_test = mnist_prep()
+    else:
+        X_train = obj_dict["parameters"]["X_train"]
+        X_test = obj_dict["parameters"]["X_test"]
+        y_train = obj_dict["parameters"]["y_train"]
+        y_test = obj_dict["parameters"]["y_test"]
+    
+    model = nn_model_structure(layers = obj_dict["parameters"]["layers"],
+                               neurons = obj_dict["parameters"]["neurons"],
+                               n_cols = X_train.shape[1],
+                               classification = True)
+    model = nn_model_compile(model,
+                             optimizer = "sgd")
+
+    final_train_acc = []
+    final_test_acc = []
+    weights_dict = obj_dict["results"]["weights_dict"]
+    
+    for i in range(obj_dict["parameters"]["particles"]):
+        model.set_weights(weights_dict["model_{}".format(i+1)])
+        final_train_acc.append(model.evaluate(X_train, y_train, verbose = 0)[1])
+        final_test_acc.append(model.evaluate(X_test, y_test, verbose = 0)[1])
+
+    if train_test == "train":
+        plt.figure(figsize = (8,5))
+        plt.scatter(np.arange(len(final_train_acc))+1, final_train_acc, alpha = 0.5, label = "Particle")
+        plt.hlines(y = obj_dict["results"]["mean_model_train_acc"][-1], xmin = 1, xmax = len(final_train_acc), color = "black", label = "Mean Particle")
+        plt.xticks([], [])
+        plt.yticks(fontsize = 14)
+        plt.legend(loc = "upper right")
+        plt.ylabel("Training Accuracy", fontsize = 16)
+        plt.ylim(bottom = np.min([np.min(final_train_acc), obj_dict["results"]["mean_model_train_acc"][-1]])*(1-rel_limit_exceed),
+                 top = np.max([np.max(final_train_acc), obj_dict["results"]["mean_model_train_acc"][-1]])*(1+rel_limit_exceed))
+    elif train_test == "test":
+        plt.figure(figsize = (8,5))
+        plt.scatter(np.arange(len(final_test_acc))+1, final_test_acc, alpha = 0.5, label = "Particle")
+        plt.hlines(y = obj_dict["results"]["mean_model_test_acc"][-1], xmin = 1, xmax = len(final_test_acc), color = "black", label = "Mean Particle")
+        plt.xticks([], [])
+        plt.yticks(fontsize = 14)
+        plt.legend(loc = "upper right")
+        plt.ylabel("Test Accuracy", fontsize = 16)
+        plt.ylim(bottom = np.min([np.min(final_test_acc), obj_dict["results"]["mean_model_test_acc"][-1]])*(1-rel_limit_exceed),
+                 top = np.max([np.max(final_test_acc), obj_dict["results"]["mean_model_test_acc"][-1]])*(1+rel_limit_exceed))
+    if save is not None:
+        plt.savefig(save)
+    plt.show()
+    
+    if return_accs:
+        return final_train_acc, final_test_acc
+
 def nn_plot_particle_mse(model_object_path,
                          train_test = "train",
                          rel_limit_exceed = 0.01,
@@ -645,7 +727,15 @@ def nn_plot_particle_mse(model_object_path,
     model_object_path (str): File path to .pckl-file with the models objects.
     train_test (str): Whether to plot the training or test MSE. Must be either "train" or "test".
     rel_limit_exceed (float): Percentage to exceed the axis limits by.
+    return_mses (bool): Whether or not to return the particle MSEs.
     save (str or None): File path for saving the plot.
+    
+    
+    
+    Returns:
+    
+    final_train_mse (list): List of the particle trianing MSEs, if return_mses is True.
+    final_test_mse (list): List of the particle test MSEs, if return_mses is True.
 
     """
     
