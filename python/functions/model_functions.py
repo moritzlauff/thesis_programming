@@ -216,7 +216,8 @@ def nn_save(model,
     f.close()
 
 
-def nn_load(path_name):
+def nn_load(path_name,
+            compile = True):
 
     """ Function to load a neural network model and its history.
 
@@ -234,7 +235,8 @@ def nn_load(path_name):
 
     """
 
-    model = tensorflow.python.keras.models.load_model(path_name)
+    model = tensorflow.python.keras.models.load_model(path_name, 
+                                                      compile = compile)
 
     history_path = path_name.replace("models",
                                      "objects").\
