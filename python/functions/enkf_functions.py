@@ -712,7 +712,7 @@ def enkf_regressor(X_train,
                 train_mse_new = mean_model_train_mse[epoch]
                 test_mse_new = mean_model_test_mse[epoch]
                 if np.absolute(test_mse_new - test_mse_old) <= early_stopping_diff and np.absolute(train_mse_new - train_mse_old) <= early_stopping_diff:
-                    print("STOP: Early Stopping after epoch {} because improvement in training mse is only {} and in test mse only {}."\
+                    print("STOP: Early Stopping after epoch {} because improvement in training MSE is only {} and in test mse only {}."\
                                                                          .format(epoch, train_mse_new - train_mse_old, test_mse_new - test_mse_old))
                     break
                 test_mse_old = test_mse_new
@@ -814,11 +814,11 @@ def enkf_regressor(X_train,
                 weights_dict["model_{}".format(str(i+1))] = new_weights
 
         for i in range(particles):
-            # for every particle write the training mse of the current iteration in a dictionary
+            # for every particle write the training MSE of the current iteration in a dictionary
             train_mse_dict["model_{}".format(str(i+1))].append(model_dict["model_{}".format(str(i+1))]\
                                                                       .evaluate(X_train, y_train, verbose = 0)[1])
 
-            # for every particle write the test mse of the current iteration in a dictionary
+            # for every particle write the test MSE of the current iteration in a dictionary
             test_mse_dict["model_{}".format(str(i+1))].append(model_dict["model_{}".format(str(i+1))]\
                                                                       .evaluate(X_test, y_test, verbose = 0)[1])
 
@@ -983,7 +983,7 @@ def enkf_regressor_extension(extend_model,
                 train_mse_new = mean_model_train_mse[epoch]
                 test_mse_new = mean_model_test_mse[epoch]
                 if np.absolute(test_mse_new - test_mse_old) <= early_stopping_diff and np.absolute(train_mse_new - train_mse_old) <= early_stopping_diff:
-                    print("STOP: Early Stopping after epoch {} because improvement in training mse is only {} and in test mse only {}."\
+                    print("STOP: Early Stopping after epoch {} because improvement in training MSE is only {} and in test mse only {}."\
                                                                          .format(epoch, train_mse_new - train_mse_old, test_mse_new - test_mse_old))
                     break
                 test_mse_old = test_mse_new
@@ -1085,11 +1085,11 @@ def enkf_regressor_extension(extend_model,
                 weights_dict["model_{}".format(str(i+1))] = new_weights
 
         for i in range(particles):
-            # for every particle write the training mse of the current iteration in a dictionary
+            # for every particle write the training MSE of the current iteration in a dictionary
             train_mse_dict["model_{}".format(str(i+1))].append(model_dict["model_{}".format(str(i+1))]\
                                                                       .evaluate(X_train, y_train, verbose = 0)[1])
 
-            # for every particle write the test mse of the current iteration in a dictionary
+            # for every particle write the test MSE of the current iteration in a dictionary
             test_mse_dict["model_{}".format(str(i+1))].append(model_dict["model_{}".format(str(i+1))]\
                                                                       .evaluate(X_test, y_test, verbose = 0)[1])
 
