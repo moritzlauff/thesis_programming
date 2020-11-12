@@ -21,12 +21,14 @@
 import sys
 sys.path.insert(1, "../architecture")
 
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import reproducible
-from sklearn.metrics import confusion_matrix
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import confusion_matrix, mean_squared_error
 import seaborn as sns
-from enkf_functions import enkf_inverse_problem
+from enkf_functions import enkf_inverse_problem, enkf_linear_inverse_problem_analysis
 from saving_functions import load_objects
 from model_functions import nn_model_structure, nn_model_compile
 from data_prep_functions import mnist_prep
@@ -649,18 +651,18 @@ def nn_plot_particle_acc(model_object_path,
     rel_limit_exceed (float): Percentage to exceed the axis limits by.
     return_mses (bool): Whether or not to return the particle accuracies.
     save (str or None): File path for saving the plot.
-    
-    
-    
+
+
+
     Returns:
-    
+
     final_train_acc (list): List of the particle trianing accuracies, if return_accs is True.
     final_test_acc (list): List of the particle test accuracies, if return_accs is True.
-    
+
     """
-    
+
     obj_dict = load_objects(model_object_path)
-    
+
     if "mnist" in model_object_path:
         X_train, X_test, y_train, y_test = mnist_prep()
     else:
@@ -668,7 +670,7 @@ def nn_plot_particle_acc(model_object_path,
         X_test = obj_dict["parameters"]["X_test"]
         y_train = obj_dict["parameters"]["y_train"]
         y_test = obj_dict["parameters"]["y_test"]
-    
+
     model = nn_model_structure(layers = obj_dict["parameters"]["layers"],
                                neurons = obj_dict["parameters"]["neurons"],
                                n_cols = X_train.shape[1],
@@ -679,7 +681,7 @@ def nn_plot_particle_acc(model_object_path,
     final_train_acc = []
     final_test_acc = []
     weights_dict = obj_dict["results"]["weights_dict"]
-    
+
     for i in range(obj_dict["parameters"]["particles"]):
         model.set_weights(weights_dict["model_{}".format(i+1)])
         final_train_acc.append(model.evaluate(X_train, y_train, verbose = 0)[1])
@@ -708,7 +710,7 @@ def nn_plot_particle_acc(model_object_path,
     if save is not None:
         plt.savefig(save)
     plt.show()
-    
+
     if return_accs:
         return final_train_acc, final_test_acc
 
@@ -729,18 +731,18 @@ def nn_plot_particle_mse(model_object_path,
     rel_limit_exceed (float): Percentage to exceed the axis limits by.
     return_mses (bool): Whether or not to return the particle MSEs.
     save (str or None): File path for saving the plot.
-    
-    
-    
+
+
+
     Returns:
-    
+
     final_train_mse (list): List of the particle trianing MSEs, if return_mses is True.
     final_test_mse (list): List of the particle test MSEs, if return_mses is True.
 
     """
-    
+
     obj_dict = load_objects(model_object_path)
-    
+
     model = nn_model_structure(layers = obj_dict["parameters"]["layers"],
                                neurons = obj_dict["parameters"]["neurons"],
                                n_cols = obj_dict["parameters"]["X_train"].shape[1],
@@ -751,7 +753,7 @@ def nn_plot_particle_mse(model_object_path,
     final_train_mse = []
     final_test_mse = []
     weights_dict = obj_dict["results"]["weights_dict"]
-    
+
     for i in range(obj_dict["parameters"]["particles"]):
         model.set_weights(weights_dict["model_{}".format(i+1)])
         final_train_mse.append(model.evaluate(obj_dict["parameters"]["X_train"], obj_dict["parameters"]["y_train"], verbose = 0)[1])
@@ -780,12 +782,13 @@ def nn_plot_particle_mse(model_object_path,
     if save is not None:
         plt.savefig(save)
     plt.show()
-    
+
     if return_mses:
         return final_train_mse, final_test_mse
 
-def plot_IP_loss_evolution(loss_evolution,
+def plot_IP_loss_evolution(return_dict,
                            start_iteration = 1,
+                           reg_line = False,
                            xlabel = "Iteration",
                            save = None
                            ):
@@ -796,13 +799,16 @@ def plot_IP_loss_evolution(loss_evolution,
 
     Parameters:
 
-    loss_evolution (list): Evolution of the loss value over each iteration.
+    loss_evolution (dict):Dictionary from enkf_inverse_problem or enkf_linear_inverse_problem_analysis.
     start_iteration (int): First iteration to be plotted. Helpful for large difference in first and last loss value.
+    reg_line (bool): Whether or not to plot the line of the corresponding analytic linear regression MSE.
     xlabel (str): Label of the x-axis. Should be either "Iteration" or "Epoch".
     save (str or None): File path for saving the plot.
 
 
     """
+
+    loss_evolution = return_dict["loss_evolution"]
 
     xticks = np.linspace(start = 0,
                          stop = len(loss_evolution) - 1,
@@ -810,15 +816,36 @@ def plot_IP_loss_evolution(loss_evolution,
     xticks = np.delete(xticks, np.where(xticks <= start_iteration))
     xticks = np.append(xticks, [start_iteration])
 
+    if reg_line:
+        y_pred_init_dict = {}
+        for i in range(len(return_dict["param_init_dict"])):
+            y_pred_init_dict["particle_{}".format(str(i+1))] = np.dot(return_dict["A"], return_dict["param_init_dict"]["particle_{}".format(str(i+1))])
+        y_pred_init_dict["particle_1"].shape
+
+        X = pd.DataFrame(y_pred_init_dict)
+        y = return_dict["y"]
+
+        lm = LinearRegression(fit_intercept = False).fit(X, y)
+
+        y_pred = lm.predict(X)
+        mse = mean_squared_error(y_pred, y)
+
     plt.figure(figsize = (8,5))
     plt.plot(np.arange(len(loss_evolution))[start_iteration:],
              loss_evolution[start_iteration:],
              marker = "s")
+    if reg_line:
+        plt.hlines(mse,
+                   start_iteration,
+                   np.arange(len(loss_evolution))[-1],
+                   color = "black",
+                   label = "Min. Subspace MSE")
     plt.grid()
     plt.xlabel(xlabel, fontsize = 16)
     plt.ylabel("Mean Squared Error", fontsize = 16)
     plt.xticks(ticks = xticks, fontsize = 14)
     plt.yticks(fontsize = 14)
+    plt.legend(loc = "upper right")
     if save is not None:
         plt.savefig(save)
     plt.show()
@@ -829,6 +856,8 @@ def plot_IP_loss_evolution_many(setting_dict,
                                 end_iteration = None, # setting_dict["iterations"]
                                 log = False,
                                 xlabel = "Iteration",
+                                analysis_dict = None,
+                                linear = True,
                                 save = None
                                 ):
 
@@ -838,16 +867,21 @@ def plot_IP_loss_evolution_many(setting_dict,
 
     Parameters:
 
-    setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems.
+    setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems or enkf_inverse_problems_analysis.
     particle_list (list): Different numbers of particles.
     start_iteration (int): First iteration to be plotted. Helpful for large difference in first and last loss value.
     end_iteration (int): Last iteration to be plotted. Helpful for large difference in first and last loss value.
-    log (bool): Whether or not to use the logarithm of the loss in the plot. Helpful for small differences within particles.
+    log (bool): Whether or not to use a logarithmic y-scale  in the plot. Helpful for large differences within particles.
     xlabel (str): Label of the x-axis. Should be either "Iteration" or "Epoch".
+    analysis_dict (dict or None): Dictionary containing the necessary inputs for enkf_inverse_problems_analysis.
+    linear (bool): Whether or not it is a linear problem.
     save (str or None): File path for saving the plot.
 
 
     """
+    if "iterations" not in list(setting_dict.keys()):
+        setting_dict["iterations"] = setting_dict["epochs"]
+
     if end_iteration is None:
         end_iteration = setting_dict["iterations"]
 
@@ -855,8 +889,12 @@ def plot_IP_loss_evolution_many(setting_dict,
 
     for i in range(len(particle_list)):
         setting_dict["particles"] = particle_list[i]
-        _, loss_evolution_particles, _ = enkf_inverse_problem(setting_dict)
-        loss_evolution_dict["P{}".format(particle_list[i])] = loss_evolution_particles
+        if not linear:
+            return_dict = enkf_inverse_problem(setting_dict)
+        else:
+            return_dict = enkf_linear_inverse_problem_analysis(setting_dict,
+                                                               analysis_dict)
+        loss_evolution_dict["P{}".format(particle_list[i])] = return_dict["loss_evolution"]
 
     xticks = np.linspace(start = 0,
                          stop = setting_dict["iterations"],
@@ -868,29 +906,25 @@ def plot_IP_loss_evolution_many(setting_dict,
 
     plt.figure(figsize = (8,5))
     for i in range(len(loss_evolution_dict)):
-        if log:
-            plt.plot(np.arange(len(list(loss_evolution_dict.values())[i]))[start_iteration:end_iteration+1],
-                     np.log(list(loss_evolution_dict.values())[i][start_iteration:end_iteration+1]),
-                     label = list(loss_evolution_dict.keys())[i])
-        else:
-            plt.plot(np.arange(len(list(loss_evolution_dict.values())[i]))[start_iteration:end_iteration+1],
-                     list(loss_evolution_dict.values())[i][start_iteration:end_iteration+1],
-                     label = list(loss_evolution_dict.keys())[i])
+        plt.plot(np.arange(len(list(loss_evolution_dict.values())[i]))[start_iteration:end_iteration+1],
+                 list(loss_evolution_dict.values())[i][start_iteration:end_iteration+1],
+                 label = list(loss_evolution_dict.keys())[i])
     plt.grid()
     plt.xlabel(xlabel, fontsize = 16)
-    if log:
-        plt.ylabel("Log of the Mean Squared Error", fontsize = 16)
-    else:
-        plt.ylabel("Mean Squared Error", fontsize = 16)
+    plt.ylabel("Mean Squared Error", fontsize = 16)
     plt.legend(loc = "upper right")
     plt.xticks(ticks = xticks, fontsize = 14)
     plt.yticks(fontsize = 14)
+    if log:
+        plt.yscale("log")
     if save is not None:
         plt.savefig(save)
     plt.show()
 
 def plot_IP_true_false(setting_dict,
                        final_params,
+                       num_points = None,
+                       x_axis = False,
                        save = None
                        ):
 
@@ -901,25 +935,37 @@ def plot_IP_true_false(setting_dict,
 
         setting_dict (dict): Dictionary containing
             model_func (function): Function to apply to x.
-            x (np.array): True parameters.
+            x (np.array): True parameter.
             y (np.array): True target variables.
         final_params (np.ndarray): Predicted parameters.
+        num_points (int or None): Number of points to plot.
+        x_axis (bool): Whether or not to use the true parameters as x-axis values.
         save (str or None): File path for saving the plot.
 
 
     """
 
+    if num_points is None or num_points > len(setting_dict["y"]):
+        num_points = len(setting_dict["y"])
+
     model_func = setting_dict["model_func"]
     x = setting_dict["x"]
     y = setting_dict["y"]
 
+    indices = np.random.choice(np.arange(len(y)),
+                               size = num_points,
+                               replace = False)
+
     plt.figure(figsize = (8,5))
-    plt.scatter(x, y, color = "blue", s = 200, alpha = 0.5, label = "True")
-    plt.scatter(x, model_func(final_params), color = "red", s = 30, label = "Predicted")
+    if not x_axis:
+        plt.scatter(np.arange(num_points), y[indices], color = "blue", s = 200, alpha = 0.5, label = "True")
+        plt.scatter(np.arange(num_points), model_func(final_params)[indices], color = "red", s = 30, label = "Predicted")
+    else:
+        plt.scatter(x, y, color = "blue", s = 200, alpha = 0.5, label = "True")
+        plt.scatter(x, model_func(final_params), color = "red", s = 30, label = "Predicted")
     plt.legend(loc = "upper right")
-    plt.xlabel(r'$\theta$', fontsize = 16)
     plt.ylabel(r'$\mathcal{G}(\theta)$', fontsize = 16)
-    plt.xticks(fontsize = 14)
+    plt.xticks([], [])
     plt.yticks(fontsize = 14)
     if save is not None:
         plt.savefig(save)
@@ -927,6 +973,7 @@ def plot_IP_true_false(setting_dict,
 
 def plot_IP_particle_loss(loss_evolution,
                           loss_evolution_single_dict,
+                          rel_limit_exceed = 0.05,
                           save = None
                           ):
 
@@ -937,6 +984,7 @@ def plot_IP_particle_loss(loss_evolution,
 
     loss_evolution (list): Evolution of the loss value over each iteration.
     loss_evolution_single_dict (dict): Evolutions of loss values of all particles.
+    rel_limit_exceed (float): Percentage to exceed the axis limits by.
     save (str or None): File path for saving the plot.
 
     """
@@ -950,8 +998,8 @@ def plot_IP_particle_loss(loss_evolution,
     plt.yticks(fontsize = 14)
     plt.legend(loc = "upper right")
     plt.ylabel("Mean Squared Error", fontsize = 16)
-    plt.ylim(bottom = np.min([np.min(final_mse), loss_evolution[-1]])*0.9,
-             top = np.max([np.max(final_mse), loss_evolution[-1]])*1.1)
+    plt.ylim(bottom = np.min([np.min(final_mse), loss_evolution[-1]])*(1 - rel_limit_exceed),
+             top = np.max([np.max(final_mse), loss_evolution[-1]])*(1 + rel_limit_exceed))
     if save is not None:
         plt.savefig(save)
     plt.show()
@@ -976,8 +1024,8 @@ def plot_IP_particle_std(setting_dict,
 
     for i in range(len(particle_list)):
         setting_dict["particles"] = particle_list[i]
-        _, _, loss_evolution_single_dict = enkf_inverse_problem(setting_dict)
-        loss_final_std_dict["P{}".format(particle_list[i])] = np.std([list(loss_evolution_single_dict.values())[j][-1] for j in range(len(loss_evolution_single_dict))]) / np.mean([list(loss_evolution_single_dict.values())[j][-1] for j in range(len(loss_evolution_single_dict))])
+        return_dict = enkf_inverse_problem(setting_dict)
+        loss_final_std_dict["P{}".format(particle_list[i])] = np.std([list(return_dict["loss_evolution_single_dict"].values())[j][-1] for j in range(len(return_dict["loss_evolution_single_dict"]))]) / np.mean([list(return_dict["loss_evolution_single_dict"].values())[j][-1] for j in range(len(return_dict["loss_evolution_single_dict"]))])
 
 
     xticks = [int(list(loss_final_std_dict.keys())[i].split("P")[1]) for i in range(len(loss_final_std_dict))]
@@ -1016,8 +1064,8 @@ def plot_IP_iteration_std(setting_dict,
     for i in range(len(iteration_list)):
         setting_dict["iterations"] = iteration_list[i]
         np.random.seed(42)
-        _, _, loss_evolution_single_dict = enkf_inverse_problem(setting_dict)
-        loss_final_std_dict["I{}".format(iteration_list[i])] = np.std([list(loss_evolution_single_dict.values())[j][-1] for j in range(len(loss_evolution_single_dict))]) / np.mean([list(loss_evolution_single_dict.values())[j][-1] for j in range(len(loss_evolution_single_dict))])
+        return_dict = enkf_inverse_problem(setting_dict)
+        loss_final_std_dict["I{}".format(iteration_list[i])] = np.std([list(return_dict["loss_evolution_single_dict"].values())[j][-1] for j in range(len(return_dict["loss_evolution_single_dict"]))]) / np.mean([list(return_dict["loss_evolution_single_dict"].values())[j][-1] for j in range(len(return_dict["loss_evolution_single_dict"]))])
 
 
     xticks = [int(list(loss_final_std_dict.keys())[i].split("I")[1]) for i in range(len(loss_final_std_dict))]
