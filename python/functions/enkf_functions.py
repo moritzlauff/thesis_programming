@@ -4,6 +4,7 @@
 #   enkf_regressor
 #   enkf_regressor_extension
 #   enkf_inverse_problem
+#   enkf_linear_inverse_problem_analysis
 
 import sys
 sys.path.insert(1, "../architecture")
@@ -1175,9 +1176,10 @@ def enkf_inverse_problem(setting_dict
 
     Returns:
 
-    final_params (np.ndarray): Final predicted parameter.
-    loss_evolution (list): Evolution of the loss value over each iteration.
-    loss_evolution_single_dict (dict): Evolutions of loss values of all particles.
+    return_dict (dict): Dictionary containing
+        final_params (np.ndarray): Final predicted parameter.
+        loss_evolution (list): Evolution of the loss value over each iteration.
+        loss_evolution_single_dict (dict): Evolutions of loss values of all particles.
 
     """
 
@@ -1190,7 +1192,7 @@ def enkf_inverse_problem(setting_dict
     std = setting_dict["std"]
     h_0 = setting_dict["h_0"]
     epsilon = setting_dict["epsilon"]
-    randomization = setting_dict["randomization"]
+    # randomization = setting_dict["randomization"]
 
 
     if noise and any(std == None):
@@ -1212,12 +1214,14 @@ def enkf_inverse_problem(setting_dict
             return (-2) / y_true.shape[0] * np.diag(gamma_HM12) * (y_true - y_pred)
 
     param_dict = {}
+    param_init_dict = {}
     y_pred_dict = {}
     jacobian_dict = {}
     loss_dict = {}
 
     for i in range(particles):
         param_dict["particle_{}".format(i+1)] = np.random.normal(loc = 0, scale = 1, size = x.shape)
+        param_init_dict["particle_{}".format(i+1)] = param_dict["particle_{}".format(i+1)]
         y_pred_dict["particle_{}".format(i+1)] = model_func(param_dict["particle_{}".format(i+1)])
         jacobian_dict["particle_{}".format(i+1)] = grad_loss(y, y_pred_dict["particle_{}".format(i+1)])
         loss_dict["particle_{}".format(i+1)] = loss(y, y_pred_dict["particle_{}".format(i+1)])
@@ -1263,25 +1267,25 @@ def enkf_inverse_problem(setting_dict
         for i in range(particles):
             param_dict["particle_{}".format(str(i+1))] = params_all_ptcls[i]
 
-            if randomization:
-                # add randomization/ noise to each particle
-                stddev = 0.1
-                noise = np.random.normal(loc = 0.0,
-                                         scale = stddev,
-                                         size = param_dict["particle_{}".format(str(i+1))].shape)
-                new_param = param_dict["particle_{}".format(str(i+1))] + noise
-                param_dict["particle_{}".format(str(i+1))] = new_param
+        #     if randomization:
+        #         # add randomization/ noise to each particle
+        #         stddev = 0.1
+        #         noise = np.random.normal(loc = 0.0,
+        #                                  scale = stddev,
+        #                                  size = param_dict["particle_{}".format(str(i+1))].shape)
+        #         new_param = param_dict["particle_{}".format(str(i+1))] + noise
+        #         param_dict["particle_{}".format(str(i+1))] = new_param
 
-        if randomization:
-            # randomize particles around their mean
-            param_dict_mean = list(np.mean(list(param_dict.values()), axis = 0))
-            for i in range(particles):
-                stddev = 0.1
-                noise = np.random.normal(loc = 0.0,
-                                         scale = stddev,
-                                         size = param_dict["particle_{}".format(str(i+1))].shape)
-                new_params = param_dict_mean + noise
-                param_dict["particle_{}".format(str(i+1))] = new_params
+        # if randomization:
+        #     # randomize particles around their mean
+        #     param_dict_mean = list(np.mean(list(param_dict.values()), axis = 0))
+        #     for i in range(particles):
+        #         stddev = 0.1
+        #         noise = np.random.normal(loc = 0.0,
+        #                                  scale = stddev,
+        #                                  size = param_dict["particle_{}".format(str(i+1))].shape)
+        #         new_params = param_dict_mean + noise
+        #         param_dict["particle_{}".format(str(i+1))] = new_params
 
         # compute loss for the parameter means
         param_mean = np.mean(params_all_ptcls, axis = 0)
@@ -1292,4 +1296,414 @@ def enkf_inverse_problem(setting_dict
 
         final_params = param_mean
 
-    return final_params, loss_evolution, loss_evolution_single_dict
+        return_dict = {}
+        return_dict["final_params"] = final_params
+        return_dict["loss_evolution"] = loss_evolution
+        return_dict["loss_evolution_single_dict"] = loss_evolution_single_dict
+
+    return return_dict
+
+def enkf_linear_inverse_problem_analysis(setting_dict,
+                                         analysis_dict
+                                         ):
+
+    """ Ensemble Kalman Filter algorithm applied to a linear inverse problem with analysis options.
+
+
+    Parameters:
+
+    setting_dict (dict): Dictionary containing
+        A (np.ndarray): Matrix A for the model Ax = y + noise
+        model_func (function): Function to apply to x.
+        x (np.array): True parameters.
+        y (np.array): True target variable.
+        particles (int): Number of particles in the ensemble.
+        epochs (int): Number of epochs.
+        noise (bool): Whether or not to add noise to the target variable.
+        std (np.array): Standard deviation of the noise.
+        h_0 (int or float): Starting step size.
+        epsilon (float): Constant for numerical stability in the step size.
+        randomization (bool): Whether or not to add noise to the particles and randomize them around their mean.
+        loss (str): Which kind of loss to use. Can be either "mse" or "rel_mse"
+    analysis_dict (dict or None): Dictionary containing
+        disjoint_batch (bool): Whether or not to use disjoint batches. If False then each batch is sampled with replacement.
+        batch_particle_connection (dict): Dictionary containing
+            connect (bool): Whether or not to connect particles and batches.
+            shuffle (str or None): Whether or not and how to shuffle the connection. None = no shuffle. "batch" = shuffle the batch for fixed particle sets. "full" = shuffle the particle sets and their corresponding batch.
+            update_all (bool): Whether or not to update after all particles have seen some data.
+        tikhonov (dict): Dictionary containing
+            regularize (bool): Whether or not to use Tikhonov regularization.
+            lambda (None or float): Lambda parameter in Tikhonov regularization.
+            reg_mse_stop (bool): Whether or not to stop when MSE + Tikhonov regularization starts to rise again.
+        batch_evaluation (bool): Whether or not to compute the MSE after each batch. Only possible if no batch_particle_connection ist performed.
+
+
+    Returns:
+
+    final_params (np.ndarray): Final predicted parameter.
+    loss_evolution (list): Evolution of the loss value over each epoch.
+    loss_evolution_single_dict (dict): Evolutions of loss values of all particles.
+
+    """
+
+    A = setting_dict["A"]
+    model_func = setting_dict["model_func"]
+    x = setting_dict["x"]
+    y = setting_dict["y"]
+    particles = setting_dict["particles"]
+    epochs = setting_dict["epochs"]
+    batch_size = setting_dict["batch_size"]
+    noise = setting_dict["noise"]
+    std = setting_dict["std"]
+    h_0 = setting_dict["h_0"]
+    epsilon = setting_dict["epsilon"]
+    loss_type = setting_dict["loss"]
+
+    if analysis_dict is None:
+        disjoint_batch = True
+        batch_particle_connection = False
+        batch_particle_shuffle = None
+        update_all = False
+        tik_regularize = False
+        tik_lambda = 0
+        reg_mse_stop = False
+        reg_stop = False
+        batch_mse = False
+    else:
+        disjoint_batch = analysis_dict["disjoint_batch"]
+        batch_particle_connection = analysis_dict["batch_particle_connection"]["connect"]
+        batch_particle_shuffle = analysis_dict["batch_particle_connection"]["shuffle"]
+        update_all = analysis_dict["batch_particle_connection"]["update_all"]
+        tik_regularize = analysis_dict["tikhonov"]["regularize"]
+        tik_lambda = analysis_dict["tikhonov"]["lambda"]
+        reg_mse_stop = analysis_dict["tikhonov"]["reg_mse_stop"]
+        reg_stop = False
+        batch_mse = analysis_dict["batch_evaluation"]
+
+    if batch_size == A.shape[0] and batch_mse == True:
+        batch_mse = False
+
+    if tik_lambda is None:
+        tik_lambda = 0
+
+    if noise and std is None:
+        raise ValueError("If noise is True, then std can not be None.")
+
+    if noise:
+        gamma_HM12 = np.sqrt(np.linalg.inv(np.diag(std)))
+    else:
+        gamma_HM12 = None
+
+    def model_func(mat, param):
+        if tik_regularize:
+            mat = np.vstack([mat, tik_lambda * np.identity(n = param.shape[0])])
+        return np.dot(mat, param)
+
+    def loss(y_true, y_pred, reg, gamma_HM12):
+        if tik_regularize:
+            y_true = np.hstack([y_true, np.zeros(shape = (y_pred.shape[0] - y_true.shape[0],))])
+        if not noise:
+            if loss_type == "mse":
+                if not tik_regularize:
+                    return mean_squared_error(y_true, y_pred)
+                else:
+                    return mean_squared_error(y_true, y_pred) + tik_lambda * np.sum(reg**2)
+            elif loss_type == "rel_mse":
+                if not tik_regularize:
+                    return mean_squared_error(y_true, y_pred) / np.mean(y_true)
+                else:
+                    return mean_squared_error(y_true, y_pred) / np.mean(y_true) + tik_lambda * np.sum(reg**2)
+        else:
+            if loss_type == "mse":
+                if not tik_regularize:
+                    return np.mean(np.dot(gamma_HM12, y_true - y_pred)**2)
+                else:
+                    return np.mean(np.dot(gamma_HM12, y_true - y_pred)**2) + tik_lambda * np.sum(reg**2)
+            elif loss_type == "rel_mse":
+                if not tik_regularize:
+                    return np.mean(np.dot(gamma_HM12, y_true - y_pred)**2) / np.mean(y_true)
+                else:
+                    return np.mean(np.dot(gamma_HM12, y_true - y_pred)**2) / np.mean(y_true) + tik_lambda * np.sum(reg**2)
+
+    def grad_loss(y_true, y_pred, gamma_HM12):
+        if tik_regularize:
+            y_true = np.hstack([y_true, np.zeros(shape = (y_pred.shape[0] - y_true.shape[0],))])
+        if not noise:
+            return (-2) / y_true.shape[0] * (y_true - y_pred)
+        else:
+            return (-2) / y_true.shape[0] * np.diag(gamma_HM12) * (y_true - y_pred)
+
+    if batch_size is None:
+        batch_size = A.shape[0]
+
+    if disjoint_batch:
+        n = A.shape[0]
+        num_batches = int(np.ceil(n / batch_size))
+        batch_indices = np.cumsum([0] + list(np.ones(num_batches) * batch_size))
+        batch_indices[-1] = n
+    else:
+        n = A.shape[0]
+        num_batches = int(np.ceil(n / batch_size))
+        last_batch_size = n % batch_size
+
+    indices = np.arange(n)
+    if disjoint_batch:
+        A_batches = [A[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
+        y_batches = [y[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
+        if noise:
+            gamma_batches = [gamma_HM12[indices][int(batch_indices[i]):int(batch_indices[i+1]), int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
+    else:
+        if last_batch_size != 0:
+            indices = [np.random.choice(A.shape[0], size = batch_size, replace = True) for i in range(num_batches-1)]
+            indices.append(np.random.choice(A.shape[0], size = last_batch_size, replace = True))
+        else:
+            indices = [np.random.choice(A.shape[0], size = batch_size, replace = True) for i in range(num_batches)]
+        A_batches = [A[indices[i]] for i in range(len(indices))]
+        y_batches = [y[indices[i]] for i in range(len(indices))]
+        if noise:
+            gamma_batches = [gamma_HM12[indices[i], indices[i]] for i in range(len(indices))]
+
+    if batch_particle_connection:
+        batch_particle_dict = {}
+        batch_particle_indices = np.arange(particles) + 1
+        np.random.shuffle(batch_particle_indices)
+        if particles == num_batches:
+            for i in range(num_batches):
+                batch_particle_dict["batch_{}".format(str(i+1))] = batch_particle_indices[i]
+        elif particles > num_batches:
+            base_batches = particles // num_batches
+            add_batches = particles % num_batches
+            for i in range(num_batches):
+                batch_particle_dict["batch_{}".format(str(i+1))] = batch_particle_indices[:base_batches]
+                batch_particle_indices = batch_particle_indices[base_batches:]
+            for i in range(add_batches):
+                batch_particle_dict["batch_{}".format(str(i+1))] = np.concatenate([batch_particle_dict["batch_{}".format(str(i+1))], np.array([batch_particle_indices[i]])])
+        elif num_batches > particles:
+            num_reps = int(np.ceil(num_batches / particles))
+            particles_repeated = np.tile(batch_particle_indices, num_reps)
+            for i in range(num_batches):
+                batch_particle_dict["batch_{}".format(str(i+1))] = particles_repeated[i]
+    else:
+        batch_particle_dict = None
+
+    param_dict = {}
+    param_init_dict = {}
+    y_pred_dict = {}
+    jacobian_dict = {}
+    loss_dict = {}
+
+    for i in range(particles):
+        param_dict["particle_{}".format(i+1)] = np.random.normal(loc = 0, scale = 1, size = x.shape)
+        param_init_dict["particle_{}".format(i+1)] = param_dict["particle_{}".format(i+1)]
+        y_pred_dict["particle_{}".format(i+1)] = model_func(A, param_dict["particle_{}".format(i+1)])
+        jacobian_dict["particle_{}".format(i+1)] = grad_loss(y, y_pred_dict["particle_{}".format(i+1)], gamma_HM12)
+        loss_dict["particle_{}".format(i+1)] = loss(y, y_pred_dict["particle_{}".format(i+1)], param_dict["particle_{}".format(i+1)], gamma_HM12)
+
+    param_mean = np.mean(list(param_dict.values()), axis = 0)
+    final_params = param_mean
+
+    loss_evolution = []
+    loss_evolution.append(loss(y, np.dot(A, param_mean), param_dict["particle_{}".format(i+1)], gamma_HM12))
+    if tik_regularize and reg_mse_stop:
+        loss_evolution_reg = []
+        loss_evolution_reg.append(loss(y, model_func(A, param_mean), param_dict["particle_{}".format(i+1)], gamma_HM12))
+
+    loss_evolution_single_dict = {}
+    for i in range(particles):
+        loss_evolution_single_dict["particle_{}".format(i+1)] = [loss(y, np.dot(A, param_dict["particle_{}".format(i+1)]), param_dict["particle_{}".format(i+1)], gamma_HM12)]
+
+    for epoch in range(epochs):
+
+        if tik_regularize and reg_mse_stop:
+            if epoch >= 1:
+                if loss_evolution_reg[epoch] > loss_evolution_reg[epoch-1]:
+                    reg_stop = True
+                    print("Loss containing Tikhonov regularization starts to rise. Algorithm is stopped after epoch {}.".format(epoch))
+                    break
+
+        if batch_particle_connection and batch_particle_shuffle == "permute":
+            shuffled_indices = np.hstack(list(batch_particle_dict.values()))
+            np.random.shuffle(shuffled_indices)
+            batch_particle_values = list(batch_particle_dict.values())
+            for i in range(len(batch_particle_values)):
+                batch_particle_dict["batch_{}".format(str(i+1))] = shuffled_indices[i*len(batch_particle_values[i]):(i+1)*len(batch_particle_values[i])]
+        if batch_particle_connection and (batch_particle_shuffle == "particle" or batch_particle_shuffle == "full"):
+            batch_particle_dict = {}
+            batch_particle_indices = np.arange(particles) + 1
+            np.random.shuffle(batch_particle_indices)
+            if particles == num_batches:
+                for i in range(num_batches):
+                    batch_particle_dict["batch_{}".format(str(i+1))] = batch_particle_indices[i]
+            elif particles > num_batches:
+                base_batches = particles // num_batches
+                add_batches = particles % num_batches
+                for i in range(num_batches):
+                    batch_particle_dict["batch_{}".format(str(i+1))] = batch_particle_indices[:base_batches]
+                    batch_particle_indices = batch_particle_indices[base_batches:]
+                for i in range(add_batches):
+                    batch_particle_dict["batch_{}".format(str(i+1))] = np.concatenate([batch_particle_dict["batch_{}".format(str(i+1))], np.array([batch_particle_indices[i]])])
+            elif num_batches > particles:
+                num_reps = int(np.ceil(num_batches / particles))
+                particles_repeated = np.tile(batch_particle_indices, num_reps)
+                for i in range(num_batches):
+                    batch_particle_dict["batch_{}".format(str(i+1))] = particles_repeated[i]
+        if batch_particle_connection and (batch_particle_shuffle == "batch" or batch_particle_shuffle == "full"):
+            indices = np.arange(n)
+            np.random.shuffle(indices)
+            if disjoint_batch:
+                A_batches = [A[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
+                y_batches = [y[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
+                if noise:
+                    gamma_batches = [gamma_HM12[indices][int(batch_indices[i]):int(batch_indices[i+1]), int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
+            else:
+                if last_batch_size != 0:
+                    indices = [np.random.choice(A.shape[0], size = batch_size, replace = True) for i in range(num_batches-1)]
+                    indices.append(np.random.choice(A.shape[0], size = last_batch_size, replace = True))
+                else:
+                    indices = [np.random.choice(A.shape[0], size = batch_size, replace = True) for i in range(num_batches)]
+                A_batches = [A[indices[i]] for i in range(len(indices))]
+                y_batches = [y[indices[i]] for i in range(len(indices))]
+                if noise:
+                    gamma_batches = [gamma_HM12[indices[i], indices[i]] for i in range(len(indices))]
+
+        for b in range(num_batches):
+            batch_particles = []
+            y_pred_batch_dict = {}
+            jacobian_batch_dict = {}
+            # update the predictions, jacobian and loss for the new parameters
+            for i in range(particles):
+                if batch_particle_connection:
+                    if num_batches == particles or num_batches > particles:
+                        if batch_particle_dict["batch_{}".format(str(b+1))] != i+1:
+                            continue
+                    else:
+                        if i+1 not in batch_particle_dict["batch_{}".format(str(b+1))]:
+                            continue
+                if batch_particle_connection:
+                    batch_particles.append(i+1)
+
+                if noise:
+                    gamma_HM12_batch = gamma_batches[b]
+                else:
+                    gamma_HM12_batch = None
+
+                y_pred_dict["particle_{}".format(i+1)] = model_func(A_batches[b], param_dict["particle_{}".format(i+1)])
+                y_pred_batch_dict["particle_{}".format(i+1)] = y_pred_dict["particle_{}".format(i+1)]
+                jacobian_dict["particle_{}".format(i+1)] = grad_loss(y_batches[b], y_pred_dict["particle_{}".format(i+1)], gamma_HM12_batch)
+                jacobian_batch_dict["particle_{}".format(i+1)] = jacobian_dict["particle_{}".format(i+1)]
+                loss_dict["particle_{}".format(i+1)] = loss(y_batches[b], y_pred_dict["particle_{}".format(i+1)], param_dict["particle_{}".format(i+1)], gamma_HM12_batch)
+
+            if not batch_particle_connection:
+                # compute the mean of the predictions
+                y_pred_mean = np.mean(list(y_pred_dict.values()), axis = 0)
+
+                # compute the matrix D elementwise
+                d = np.zeros(shape = (particles, particles))
+                for k in range(particles):
+                    y_pred_centered = y_pred_dict["particle_{}".format(str(k+1))] - y_pred_mean
+                    #print(np.linalg.norm(y_pred_centered))
+                    for j in range(particles):
+                        d[k][j] = np.dot(y_pred_centered, jacobian_dict["particle_{}".format(str(j+1))])
+                    #print(np.linalg.norm(jacobian_dict["particle_{}".format(str(k+1))]))
+                d = np.transpose(d)
+
+                # compute the scalar h_t
+                h_t = h_0 / (np.sqrt(np.sum(d**2)) + epsilon)
+                #print(h_t)
+                # matrix with particle parameters as row vectors
+                params_all_ptcls = np.array(list(param_dict.values()))
+
+                # compute the matrix with the updates for each particle
+                params_all_ptcls = params_all_ptcls - h_t * np.dot(d, params_all_ptcls)
+
+                # write the updates back into the dictionary
+                for i in range(particles):
+                    param_dict["particle_{}".format(str(i+1))] = params_all_ptcls[i]
+
+                if batch_mse:
+                    param_mean = np.mean(params_all_ptcls, axis = 0)
+                    loss_evolution.append(loss(y, np.dot(A, param_mean), 0, gamma_HM12))
+
+            elif batch_particle_connection and not update_all:
+                # compute the mean of the predictions
+                y_pred_mean = np.mean(list(y_pred_batch_dict.values()), axis = 0)
+
+                # compute the matrix D elementwise
+                d = np.zeros(shape = (len(y_pred_batch_dict), len(y_pred_batch_dict)))
+                for k in range(len(y_pred_batch_dict)):
+                    y_pred_centered = list(y_pred_batch_dict.values())[k] - y_pred_mean
+                    for j in range(len(y_pred_batch_dict)):
+                        d[k][j] = np.dot(y_pred_centered, list(jacobian_batch_dict.values())[j])
+                d = np.transpose(d)
+
+                # compute the scalar h_t
+                h_t = h_0 / (np.sqrt(np.sum(d**2)) + epsilon)
+
+                # matrix with particle parameters as row vectors
+                param_batch_dict = {}
+                for i in range(len(batch_particles)):
+                    param_batch_dict["particle_{}".format(batch_particles[i])] = param_dict["particle_{}".format(batch_particles[i])]
+                    params_all_ptcls = np.array(list(param_batch_dict.values()))
+
+                # compute the matrix with the updates for each particle
+                params_all_ptcls = params_all_ptcls - h_t * np.dot(d, params_all_ptcls)
+
+                # write the updates back into the dictionary
+                for i in range(len(batch_particles)):
+                    param_dict["particle_{}".format(batch_particles[i])] = params_all_ptcls[i]
+
+        if batch_particle_connection and update_all:
+            # compute the mean of the predictions
+            y_pred_mean = np.mean(list(y_pred_dict.values()), axis = 0)
+
+            # compute the matrix D elementwise
+            d = np.zeros(shape = (particles, particles))
+            for k in range(particles):
+                y_pred_centered = y_pred_dict["particle_{}".format(str(k+1))] - y_pred_mean
+                #print(np.linalg.norm(y_pred_centered))
+                for j in range(particles):
+                    d[k][j] = np.dot(y_pred_centered, jacobian_dict["particle_{}".format(str(j+1))])
+                #print(np.linalg.norm(jacobian_dict["particle_{}".format(str(k+1))]))
+            d = np.transpose(d)
+
+            # compute the scalar h_t
+            h_t = h_0 / (np.sqrt(np.sum(d**2)) + epsilon)
+            #print(h_t)
+
+            # matrix with particle parameters as row vectors
+            params_all_ptcls = np.array(list(param_dict.values()))
+
+            # compute the matrix with the updates for each particle
+            params_all_ptcls = params_all_ptcls - h_t * np.dot(d, params_all_ptcls)
+
+            # write the updates back into the dictionary
+            for i in range(particles):
+                param_dict["particle_{}".format(str(i+1))] = params_all_ptcls[i]
+
+        # compute loss for the parameter means
+        if not batch_particle_connection and batch_mse:
+            continue
+        param_mean = np.mean(params_all_ptcls, axis = 0)
+        loss_evolution.append(loss(y, np.dot(A, param_mean), 0, 1))
+        if tik_regularize and reg_mse_stop:
+            loss_evolution_reg.append(loss(y, model_func(A, param_mean), param_mean, 1))
+
+        for i in range(particles):
+            loss_evolution_single_dict["particle_{}".format(i+1)].append(loss(y, np.dot(A, param_dict["particle_{}".format(i+1)]), 0, 1))
+
+    if not reg_stop:
+        final_params = param_mean
+
+    return_dict = {}
+    return_dict["final_params"] = final_params
+    return_dict["loss_evolution"] = loss_evolution
+    return_dict["loss_evolution_single_dict"] = loss_evolution_single_dict
+    return_dict["batch_particle_dict"] = batch_particle_dict
+    return_dict["param_init_dict"] = param_init_dict
+    return_dict["param_dict"] = param_dict
+    return_dict["A"] = A
+    return_dict["y"] = y
+    return_dict["A_batches"] = A_batches
+    return_dict["y_batches"] = y_batches
+
+    return return_dict
