@@ -16,6 +16,9 @@
 #   plot_IP_particle_loss
 #   plot_IP_particle_std
 #   plot_IP_iteration_std
+#   plot_IP_particle_cosine_sim
+#   plot_IP_iteration_cosine_sim
+#   plot_IP_final_cosine_sim
 #   nn_plot_mse_old
 
 import sys
@@ -27,6 +30,7 @@ import matplotlib.pyplot as plt
 import reproducible
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import confusion_matrix, mean_squared_error
+from sklearn.metrics.pairwise import cosine_similarity
 import seaborn as sns
 from enkf_functions import enkf_inverse_problem, enkf_linear_inverse_problem_analysis
 from saving_functions import load_objects
@@ -1081,6 +1085,137 @@ def plot_IP_iteration_std(setting_dict,
         plt.savefig(save)
     plt.show()
 
+def plot_IP_particle_cosine_sim(setting_dict,
+                                particle_list,
+                                analysis_dict = None,
+                                linear = True,
+                                save = None
+                                ):
+
+    """ Plot the evolution of the mean cosine similarity of the final parameters of all particles w.r.t. the number of particles (for linear or nonlinear inverse problem).
+
+
+    Parameters:
+
+    setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems.
+    particle_list (list): Different numbers of particles.
+    analysis_dict (dict or None): Dictionary containing the necessary inputs for enkf_inverse_problems_analysis.
+    linear (bool): Whether or not it is a linear problem.
+    save (str or None): File path for saving the plot.
+
+    """
+
+    cosine_dict = {}
+
+    for i in range(len(particle_list)):
+        setting_dict["particles"] = particle_list[i]
+        if linear:
+            return_dict = enkf_linear_inverse_problem_analysis(setting_dict,
+                                                               analysis_dict)
+        else:
+            return_dict = enkf_inverse_problem(setting_dict)
+        cos_matrix = np.tril(cosine_similarity(list(return_dict["param_dict"].values())), k = -1)
+        cosine_dict["P{}".format(particle_list[i])] = np.mean(cos_matrix[cos_matrix != 0])
+
+
+    xticks = [int(list(cosine_dict.keys())[i].split("P")[1]) for i in range(len(cosine_dict))]
+
+    plt.figure(figsize = (8,5))
+    plt.plot(xticks, list(cosine_dict.values()), marker = "s")
+    plt.xlabel("Number of particles", fontsize = 16)
+    plt.ylabel("Mean of cosine similarity", fontsize = 16)
+    plt.xticks(ticks = xticks, fontsize = 14)
+    plt.yticks(fontsize = 14)
+    plt.grid()
+    if save is not None:
+        plt.savefig(save)
+    plt.show()
+
+def plot_IP_iteration_cosine_sim(setting_dict,
+                                 iteration_list,
+                                 analysis_dict = None,
+                                 linear = True,
+                                 save = None
+                                 ):
+
+    """ Plot the evolution of the mean cosine similarity of the final parameters of all particles w.r.t. the number of iterations (for linear or nonlinear inverse problem).
+
+
+    Parameters:
+
+    setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems.
+    iteration_list (list): Different numbers of iterations.
+    analysis_dict (dict or None): Dictionary containing the necessary inputs for enkf_inverse_problems_analysis.
+    linear (bool): Whether or not it is a linear problem.
+    save (str or None): File path for saving the plot.
+
+    """
+
+    cosine_dict = {}
+
+    for i in range(len(iteration_list)):
+        setting_dict["iterations"] = iteration_list[i]
+        setting_dict["epochs"] = iteration_list[i]
+        np.random.seed(42)
+        if linear:
+            return_dict = enkf_linear_inverse_problem_analysis(setting_dict,
+                                                               analysis_dict)
+        else:
+            return_dict = enkf_inverse_problem(setting_dict)
+        cos_matrix = np.tril(cosine_similarity(list(return_dict["param_dict"].values())), k = -1)
+        cosine_dict["I{}".format(iteration_list[i])] = np.mean(cos_matrix[cos_matrix != 0])
+
+
+    xticks = [int(list(cosine_dict.keys())[i].split("I")[1]) for i in range(len(cosine_dict))]
+
+    plt.figure(figsize = (8,5))
+    plt.plot(xticks, list(cosine_dict.values()), marker = "s")
+    plt.xlabel("Number of iterations", fontsize = 16)
+    plt.ylabel("Mean of cosine similarity", fontsize = 16)
+    plt.xticks(ticks = xticks, fontsize = 14)
+    plt.yticks(fontsize = 14)
+    plt.grid()
+    if save is not None:
+        plt.savefig(save)
+    plt.show()
+
+def plot_IP_final_cosine_sim(setting_dict,
+                             analysis_dict = None,
+                             linear = True,
+                             save = None
+                             ):
+
+    """ Plot the histogram of the final cosine similarities of the final parameters of all particles (for linear or nonlinear inverse problem).
+
+
+    Parameters:
+
+    setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems.
+    analysis_dict (dict or None): Dictionary containing the necessary inputs for enkf_inverse_problems_analysis.
+    linear (bool): Whether or not it is a linear problem.
+    save (str or None): File path for saving the plot.
+
+    """
+
+    np.random.seed(42)
+
+    if linear:
+        return_dict = enkf_linear_inverse_problem_analysis(setting_dict,
+                                                           analysis_dict)
+    else:
+        return_dict = enkf_inverse_problem(setting_dict)
+    cos_matrix = np.tril(cosine_similarity(list(return_dict["param_dict"].values())), k = -1)
+    cosines = cos_matrix[cos_matrix != 0]
+
+    plt.figure(figsize = (8,5))
+    plt.hist(cosines, bins = 50)
+    plt.xlabel("Cosine similarity", fontsize = 16)
+    plt.ylabel("Number of particle combinations", fontsize = 16)
+    plt.xticks(fontsize = 14)
+    plt.yticks(fontsize = 14)
+    if save is not None:
+        plt.savefig(save)
+    plt.show()
 
 
 
