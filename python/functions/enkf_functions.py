@@ -1180,6 +1180,7 @@ def enkf_inverse_problem(setting_dict
         final_params (np.ndarray): Final predicted parameter.
         loss_evolution (list): Evolution of the loss value over each iteration.
         loss_evolution_single_dict (dict): Evolutions of loss values of all particles.
+        param_dict (dict): Dictionary with the final parameter estimates for each particle.
 
     """
 
@@ -1300,6 +1301,7 @@ def enkf_inverse_problem(setting_dict
         return_dict["final_params"] = final_params
         return_dict["loss_evolution"] = loss_evolution
         return_dict["loss_evolution_single_dict"] = loss_evolution_single_dict
+        return_dict["param_dict"] = param_dict
 
     return return_dict
 
