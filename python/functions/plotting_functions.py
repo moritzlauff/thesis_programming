@@ -964,8 +964,6 @@ def plot_IP_final_cosine_sim(setting_dict,
 
     """
 
-    np.random.seed(42)
-
     if linear:
         return_dict = enkf_linear_inverse_problem_analysis(setting_dict,
                                                            analysis_dict)
@@ -975,7 +973,7 @@ def plot_IP_final_cosine_sim(setting_dict,
     cosines = cos_matrix[cos_matrix != 0]
 
     plt.figure(figsize = (8,5))
-    plt.hist(cosines, bins = 50)
+    plt.hist(cosines, bins = 50, alpha = 0.7)
     plt.xlabel("Cosine similarity", fontsize = 16)
     plt.ylabel("Number of particle combinations", fontsize = 16)
     plt.xticks(fontsize = 14)
