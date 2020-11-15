@@ -622,13 +622,15 @@ def plot_IP_loss_evolution(return_dict,
     plt.show()
 
 def plot_IP_loss_evolution_many(setting_dict,
-                                particle_list,
+                                parameter,
+                                parameter_list,
                                 start_iteration = 1,
-                                end_iteration = None, # setting_dict["iterations"]
+                                end_iteration = None,
                                 log = False,
                                 xlabel = "Iteration",
                                 analysis_dict = None,
                                 linear = True,
+                                seed = None,
                                 save = None
                                 ):
 
@@ -639,17 +641,23 @@ def plot_IP_loss_evolution_many(setting_dict,
     Parameters:
 
     setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems or enkf_inverse_problems_analysis.
-    particle_list (list): Different numbers of particles.
+    parameter (str): Parameter to vary. Must be one of the keys in setting_dict.
+    parameter_list (list): Different values for the parameter.
     start_iteration (int): First iteration to be plotted. Helpful for large difference in first and last loss value.
     end_iteration (int): Last iteration to be plotted. Helpful for large difference in first and last loss value.
     log (bool): Whether or not to use a logarithmic y-scale  in the plot. Helpful for large differences within particles.
     xlabel (str): Label of the x-axis. Should be either "Iteration" or "Epoch".
     analysis_dict (dict or None): Dictionary containing the necessary inputs for enkf_inverse_problems_analysis.
     linear (bool): Whether or not it is a linear problem.
+    seed (int or None): Whether or not to set a seed before each run.
     save (str or None): File path for saving the plot.
 
 
     """
+    
+    if parameter not in list(setting_dict.keys()):
+        raise ValueError("'parameter' must be one of the keys in setting_dict.")
+    
     if "iterations" not in list(setting_dict.keys()):
         setting_dict["iterations"] = setting_dict["epochs"]
 
@@ -658,14 +666,19 @@ def plot_IP_loss_evolution_many(setting_dict,
 
     loss_evolution_dict = {}
 
-    for i in range(len(particle_list)):
-        setting_dict["particles"] = particle_list[i]
+    for i in range(len(parameter_list)):
+        setting_dict[parameter] = parameter_list[i]
+        if seed is not None:
+            np.random.seed(seed)
         if not linear:
             return_dict = enkf_inverse_problem(setting_dict)
         else:
             return_dict = enkf_linear_inverse_problem_analysis(setting_dict,
                                                                analysis_dict)
-        loss_evolution_dict["P{}".format(particle_list[i])] = return_dict["loss_evolution"]
+        if parameter == "particles":
+            loss_evolution_dict["P{}".format(parameter_list[i])] = return_dict["loss_evolution"]
+        elif parameter == "batch_size":
+            loss_evolution_dict["B{}".format(parameter_list[i])] = return_dict["loss_evolution"]
 
     xticks = np.linspace(start = 0,
                          stop = setting_dict["iterations"],
