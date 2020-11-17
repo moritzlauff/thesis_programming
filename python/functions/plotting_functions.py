@@ -588,13 +588,18 @@ def plot_IP_loss_evolution(return_dict,
     xticks = np.append(xticks, [start_iteration])
 
     if reg_line:
+        A = return_dict["A"]
         y_pred_init_dict = {}
+        if return_dict["tik_regularize"]:
+                A = np.vstack([A, np.identity(n = A.shape[1])])
         for i in range(len(return_dict["param_init_dict"])):
-            y_pred_init_dict["particle_{}".format(str(i+1))] = np.dot(return_dict["A"], return_dict["param_init_dict"]["particle_{}".format(str(i+1))])
-        y_pred_init_dict["particle_1"].shape
+            y_pred_init_dict["particle_{}".format(str(i+1))] = np.dot(A, return_dict["param_init_dict"]["particle_{}".format(str(i+1))])
 
         X = pd.DataFrame(y_pred_init_dict)
         y = return_dict["y"]
+
+        if return_dict["tik_regularize"]:
+            y = np.hstack([y, np.zeros(A.shape[1])])
 
         lm = LinearRegression(fit_intercept = False).fit(X, y)
 
@@ -654,10 +659,10 @@ def plot_IP_loss_evolution_many(setting_dict,
 
 
     """
-    
+
     if parameter not in list(setting_dict.keys()):
         raise ValueError("'parameter' must be one of the keys in setting_dict.")
-    
+
     if "iterations" not in list(setting_dict.keys()):
         setting_dict["iterations"] = setting_dict["epochs"]
 
