@@ -12,6 +12,7 @@ sys.path.insert(1, "../architecture")
 import reproducible
 import no_gpu
 from model_functions import nn_model_structure, nn_model_compile, nn_save, nn_load
+from data_prep_functions import mnist_prep
 import numpy as np
 from saving_functions import param_to_dict, results_to_dict, save_objects, load_objects
 from sklearn.metrics import mean_squared_error
@@ -349,6 +350,9 @@ def enkf_classifier_extension(extend_model,
     y_test = settings["parameters"]["y_test"]
     layers = settings["parameters"]["layers"]
     neurons = settings["parameters"]["neurons"]
+    
+    if X_train == "MNIST":
+        X_train, X_test, y_train, y_test = mnist_prep()
 
     particles = settings["parameters"]["particles"]
     epochs = settings["parameters"]["epochs"]
