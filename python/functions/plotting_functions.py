@@ -40,6 +40,8 @@ from data_prep_functions import mnist_prep
 def nn_plot_acc(model,
                 mean_comparison = None,
                 start_epoch = 1,
+                tick_diff = 5,
+                marker = True,
                 title = "",
                 savefig = False,
                 file = "../img/accuracy.png"
@@ -53,6 +55,8 @@ def nn_plot_acc(model,
     model (tensorflow.python.keras.engine.sequential.Sequential): Some fitted model.
     mean_comparison (float or None): Accuracy when always guessing at random.
     start_epoch (int): First epoch to be plotted. Helpful for large difference in first and last loss value.
+    tick_diff (int): Difference between two ticks on the x-axis.
+    marker (bool): Whether or not to use square markers.
     title (str): Title of the plot.
     savefig (bool): Whether or not to save the plot.
     file (str): Path and filename if savefig is True.
@@ -77,7 +81,7 @@ def nn_plot_acc(model,
         test_acc_list = np.concatenate([[0], test_acc_list])
 
     stop_tick = int(np.ceil((len(train_acc_list) - 1) / 5) * 5)
-    num_round = int(np.ceil((len(train_acc_list) - 1) / 5) + 1)
+    num_round = int(np.ceil((len(train_acc_list) - 1) / tick_diff) + 1)
 
     xticks = np.linspace(start = 0,
                          stop = stop_tick,
@@ -85,9 +89,14 @@ def nn_plot_acc(model,
     xticks = np.delete(xticks, np.where(xticks <= start_epoch))
     xticks = np.append(xticks, [start_epoch])
 
+    if marker:
+        marker = "s"
+    else:
+        marker = None
+
     plt.figure(figsize = (8,5))
-    plt.plot(np.arange(len(train_acc_list))[start_epoch:] , train_acc_list[start_epoch:], label = "Training", marker = "s")
-    plt.plot(np.arange(len(test_acc_list))[start_epoch:], test_acc_list[start_epoch:], label = "Testing", marker = "s")
+    plt.plot(np.arange(len(train_acc_list))[start_epoch:] , train_acc_list[start_epoch:], label = "Training", marker = marker)
+    plt.plot(np.arange(len(test_acc_list))[start_epoch:], test_acc_list[start_epoch:], label = "Testing", marker = marker)
     if mean_comparison is not None:
         plt.hlines(y = mean_comparison,
                    xmin = start_epoch,
@@ -112,6 +121,7 @@ def nn_plot_acc_many(model_list,
                      train_test = "train",
                      mean_comparison = None,
                      start_epoch = 1,
+                     tick_diff = 5,
                      title = "",
                      savefig = False,
                      file = "../img/mse.png"
@@ -128,6 +138,7 @@ def nn_plot_acc_many(model_list,
     train_test (str): Which MSEs to plot. Can be either "train", "test" or "both".
     mean_comparison (float or None): Accuracy when always guessing at random.
     start_epoch (int): Epoch to start the plot with. Helpful for better visibility if the first MSEs are much higher than the later ones.
+    tick_diff (int): Difference between two ticks on the x-axis.
     title (str): Title of the plot.
     savefig (bool): Whether or not to save the plot.
     file (str): Path and filename if savefig is True.
@@ -159,7 +170,7 @@ def nn_plot_acc_many(model_list,
         test_accs_dict["model_{}".format(str(i+1))] = test_acc_list
 
     stop_tick = int(np.ceil((len(train_accs_dict["model_1"]) - 1) / 5) * 5)
-    num_round = int(np.ceil((len(train_accs_dict["model_1"]) - 1) / 5) + 1)
+    num_round = int(np.ceil((len(train_accs_dict["model_1"]) - 1) / tick_diff) + 1)
 
     xticks = np.linspace(start = 0,
                          stop = stop_tick,
@@ -198,6 +209,8 @@ def nn_plot_acc_many(model_list,
 def nn_plot_mse(model,
                 mse_mean = None, # mean_squared_error(y_train, np.ones(shape = (len(y_train),))*np.mean(y_train))
                 start_epoch = 1,
+                tick_diff = 5,
+                marker = True,
                 title = "",
                 savefig = False,
                 file = "../img/accuracy_per_epoch.png"
@@ -212,6 +225,8 @@ def nn_plot_mse(model,
     model (tensorflow.python.keras.engine.sequential.Sequential): Some fitted model.
     mse_mean (float or None): MSE when always predicting the mean of the target.
     start_epoch (int): First epoch to be plotted. Helpful for large difference in first and last loss value.
+    tick_diff (int): Difference between two ticks on the x-axis.
+    marker (bool): Whether or not to use square markers.
     title (str): Title of the plot.
     savefig (bool): Whether or not to save the plot.
     file (str): Path and filename if savefig is True.
@@ -236,7 +251,7 @@ def nn_plot_mse(model,
         test_mse_list = np.concatenate([[0], test_mse_list])
 
     stop_tick = int(np.ceil((len(train_mse_list) - 1) / 5) * 5)
-    num_round = int(np.ceil((len(train_mse_list) - 1) / 5) + 1)
+    num_round = int(np.ceil((len(train_mse_list) - 1) / tick_diff) + 1)
 
     xticks = np.linspace(start = 0,
                          stop = stop_tick,
@@ -244,9 +259,14 @@ def nn_plot_mse(model,
     xticks = np.delete(xticks, np.where(xticks <= start_epoch))
     xticks = np.append(xticks, [start_epoch])
 
+    if marker:
+        marker = "s"
+    else:
+        marker = None
+
     plt.figure(figsize = (8,5))
-    plt.plot(np.arange(len(train_mse_list))[start_epoch:] , train_mse_list[start_epoch:], label = "Training", marker = "s")
-    plt.plot(np.arange(len(test_mse_list))[start_epoch:], test_mse_list[start_epoch:], label = "Testing", marker = "s")
+    plt.plot(np.arange(len(train_mse_list))[start_epoch:] , train_mse_list[start_epoch:], label = "Training", marker = marker)
+    plt.plot(np.arange(len(test_mse_list))[start_epoch:], test_mse_list[start_epoch:], label = "Testing", marker = marker)
     if mse_mean is not None:
         plt.hlines(y = mse_mean,
                    xmin = start_epoch,
@@ -269,6 +289,7 @@ def nn_plot_mse_many(model_list,
                      train_test = "train",
                      mse_mean = None,       # mean_squared_error(y_train, np.ones(shape = (len(y_train),))*np.mean(y_train))
                      start_epoch = 1,
+                     tick_diff = 5,
                      title = "",
                      savefig = False,
                      file = "../img/mse.png"
@@ -285,6 +306,7 @@ def nn_plot_mse_many(model_list,
     train_test (str): Which MSEs to plot. Can be either "train", "test" or "both".
     mse_mean (float or None): MSE when always predicting the mean of the target.
     start_epoch (int): Epoch to start the plot with. Helpful for better visibility if the first MSEs are much higher than the later ones.
+    tick_diff (int): Difference between two ticks on the x-axis.
     title (str): Title of the plot.
     savefig (bool): Whether or not to save the plot.
     file (str): Path and filename if savefig is True.
@@ -316,7 +338,7 @@ def nn_plot_mse_many(model_list,
         test_mses_dict["model_{}".format(str(i+1))] = test_mse_list
 
     stop_tick = int(np.ceil((len(train_mses_dict["model_1"]) - 1) / 5) * 5)
-    num_round = int(np.ceil((len(train_mses_dict["model_1"]) - 1) / 5) + 1)
+    num_round = int(np.ceil((len(train_mses_dict["model_1"]) - 1) / tick_diff) + 1)
 
     xticks = np.linspace(start = 0,
                          stop = stop_tick,
@@ -632,6 +654,7 @@ def plot_IP_loss_evolution_many(setting_dict,
                                 start_iteration = 1,
                                 end_iteration = None,
                                 log = False,
+                                tick_diff = 5,
                                 xlabel = "Iteration",
                                 analysis_dict = None,
                                 linear = True,
@@ -651,6 +674,7 @@ def plot_IP_loss_evolution_many(setting_dict,
     start_iteration (int): First iteration to be plotted. Helpful for large difference in first and last loss value.
     end_iteration (int): Last iteration to be plotted. Helpful for large difference in first and last loss value.
     log (bool): Whether or not to use a logarithmic y-scale  in the plot. Helpful for large differences within particles.
+    tick_diff (int): Difference between two ticks on the x-axis.
     xlabel (str): Label of the x-axis. Should be either "Iteration" or "Epoch".
     analysis_dict (dict or None): Dictionary containing the necessary inputs for enkf_inverse_problems_analysis.
     linear (bool): Whether or not it is a linear problem.
@@ -687,7 +711,7 @@ def plot_IP_loss_evolution_many(setting_dict,
 
     xticks = np.linspace(start = 0,
                          stop = setting_dict["iterations"],
-                         num = int((setting_dict["iterations"]) / 5 + 1))
+                         num = int((setting_dict["iterations"]) / tick_diff + 1))
     xticks = np.delete(xticks, np.where(xticks <= start_iteration))
     xticks = np.delete(xticks, np.where(xticks >= end_iteration))
     xticks = np.append(xticks, [start_iteration])
