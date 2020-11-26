@@ -592,7 +592,7 @@ def plot_IP_loss_evolution(return_dict,
 
     Parameters:
 
-    loss_evolution (dict):Dictionary from enkf_inverse_problem or enkf_linear_inverse_problem_analysis.
+    return_dict (dict): Dictionary from enkf_inverse_problem or enkf_linear_inverse_problem_analysis.
     start_iteration (int): First iteration to be plotted. Helpful for large difference in first and last loss value.
     reg_line (bool): Whether or not to plot the line of the corresponding analytic linear regression MSE.
     xlabel (str): Label of the x-axis. Should be either "Iteration" or "Epoch".
@@ -735,7 +735,7 @@ def plot_IP_loss_evolution_many(setting_dict,
     plt.show()
 
 def plot_IP_true_false(setting_dict,
-                       final_params,
+                       return_dict,
                        num_points = None,
                        x_axis = False,
                        save = None
@@ -750,7 +750,7 @@ def plot_IP_true_false(setting_dict,
             model_func (function): Function to apply to x.
             x (np.array): True parameter.
             y (np.array): True target variables.
-        final_params (np.ndarray): Predicted parameters.
+        return_dict (dict): Dictionary from enkf_inverse_problem or enkf_linear_inverse_problem_analysis.
         num_points (int or None): Number of points to plot.
         x_axis (bool): Whether or not to use the true parameters as x-axis values.
         save (str or None): File path for saving the plot.
@@ -764,6 +764,7 @@ def plot_IP_true_false(setting_dict,
     model_func = setting_dict["model_func"]
     x = setting_dict["x"]
     y = setting_dict["y"]
+    final_params = return_dict["final_params"]
 
     indices = np.random.choice(np.arange(len(y)),
                                size = num_points,
@@ -784,8 +785,7 @@ def plot_IP_true_false(setting_dict,
         plt.savefig(save)
     plt.show()
 
-def plot_IP_particle_loss(loss_evolution,
-                          loss_evolution_single_dict,
+def plot_IP_particle_loss(return_dict,
                           rel_limit_exceed = 0.05,
                           save = None
                           ):
@@ -795,12 +795,14 @@ def plot_IP_particle_loss(loss_evolution,
 
     Parameters:
 
-    loss_evolution (list): Evolution of the loss value over each iteration.
-    loss_evolution_single_dict (dict): Evolutions of loss values of all particles.
+    return_dict (dict): Dictionary from enkf_inverse_problem or enkf_linear_inverse_problem_analysis.
     rel_limit_exceed (float): Percentage to exceed the axis limits by.
     save (str or None): File path for saving the plot.
 
     """
+
+    loss_evolution = return_dict["loss_evolution"]
+    loss_evolution_single_dict = return_dict["loss_evolution_single_dict"]
 
     final_mse = [mse[-1] for mse in list(loss_evolution_single_dict.values())]
 
@@ -988,9 +990,8 @@ def plot_IP_iteration_cosine_sim(setting_dict,
         plt.savefig(save)
     plt.show()
 
-def plot_IP_final_cosine_sim(setting_dict,
-                             analysis_dict = None,
-                             linear = True,
+def plot_IP_final_cosine_sim(return_dict,
+                             bins = 50,
                              save = None
                              ):
 
@@ -999,23 +1000,20 @@ def plot_IP_final_cosine_sim(setting_dict,
 
     Parameters:
 
-    setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems.
-    analysis_dict (dict or None): Dictionary containing the necessary inputs for enkf_inverse_problems_analysis.
-    linear (bool): Whether or not it is a linear problem.
+    return_dict (dict): Dictionary from enkf_inverse_problem or enkf_linear_inverse_problem_analysis.
+    bins (int): Number of bins.
     save (str or None): File path for saving the plot.
 
     """
 
-    if linear:
-        return_dict = enkf_linear_inverse_problem_analysis(setting_dict,
-                                                           analysis_dict)
-    else:
-        return_dict = enkf_inverse_problem(setting_dict)
     cos_matrix = np.tril(cosine_similarity(list(return_dict["param_dict"].values())), k = -1)
     cosines = cos_matrix[cos_matrix != 0]
 
+    if bins > len(cosines):
+        bins = len(cosines)
+
     plt.figure(figsize = (8,5))
-    plt.hist(cosines, bins = 50, alpha = 0.7)
+    plt.hist(cosines, bins = bins, alpha = 0.7)
     plt.xlabel("Cosine similarity", fontsize = 16)
     plt.ylabel("Number of particle combinations", fontsize = 16)
     plt.xticks(fontsize = 14)
