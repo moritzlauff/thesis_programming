@@ -4,7 +4,7 @@
 #   enkf_regressor
 #   enkf_regressor_extension
 #   enkf_inverse_problem
-#   enkf_linear_inverse_problem_analysis
+#   enkf_linear_problem_analysis
 
 import sys
 sys.path.insert(1, "../architecture")
@@ -350,7 +350,7 @@ def enkf_classifier_extension(extend_model,
     y_test = settings["parameters"]["y_test"]
     layers = settings["parameters"]["layers"]
     neurons = settings["parameters"]["neurons"]
-    
+
     if X_train == "MNIST":
         X_train, X_test, y_train, y_test = mnist_prep()
 
@@ -1309,9 +1309,9 @@ def enkf_inverse_problem(setting_dict
 
     return return_dict
 
-def enkf_linear_inverse_problem_analysis(setting_dict,
-                                         analysis_dict
-                                         ):
+def enkf_linear_problem_analysis(setting_dict,
+                                 analysis_dict
+                                 ):
 
     """ Ensemble Kalman Filter algorithm applied to a linear inverse problem with analysis options.
 
@@ -1319,36 +1319,45 @@ def enkf_linear_inverse_problem_analysis(setting_dict,
     Parameters:
 
     setting_dict (dict): Dictionary containing
-        A (np.ndarray): Matrix A for the model Ax = y + noise
+        A (np.ndarray): Matrix A for the model Ax + noise = y.
         model_func (function): Function to apply to x.
         x (np.array): True parameters.
         y (np.array): True target variable.
         particles (int): Number of particles in the ensemble.
         epochs (int): Number of epochs.
+        stepsize (float): Stepsize for update steps.
         noise (bool): Whether or not to add noise to the target variable.
         std (np.array): Standard deviation of the noise.
-        h_0 (int or float): Starting step size.
-        epsilon (float): Constant for numerical stability in the step size.
-        randomization (bool): Whether or not to add noise to the particles and randomize them around their mean.
-        loss (str): Which kind of loss to use. Can be either "mse" or "rel_mse"
     analysis_dict (dict or None): Dictionary containing
         disjoint_batch (bool): Whether or not to use disjoint batches. If False then each batch is sampled with replacement.
         batch_particle_connection (dict): Dictionary containing
             connect (bool): Whether or not to connect particles and batches.
-            shuffle (str or None): Whether or not and how to shuffle the connection. None = no shuffle. "batch" = shuffle the batch for fixed particle sets. "full" = shuffle the particle sets and their corresponding batch.
-            update_all (bool): Whether or not to update after all particles have seen some data.
+            shuffle (str or None): Whether or not and how to shuffle the connection. None = no shuffle. "permute" = change the allocation of the existing batches and particle sets. "particle" = shuffle the particle sets for fixed batches. "batch" = shuffle the batch for fixed particle sets. "full" = shuffle the particle sets and their corresponding batch.
         tikhonov (dict): Dictionary containing
             regularize (bool): Whether or not to use Tikhonov regularization.
             lambda (None or float): Lambda parameter in Tikhonov regularization.
-            reg_mse_stop (bool): Whether or not to stop when MSE + Tikhonov regularization starts to rise again.
-        batch_evaluation (bool): Whether or not to compute the MSE after each batch. Only possible if no batch_particle_connection ist performed.
+            variance_inflation (dict): Dictionary containing
+                inflation (bool): Whether or not to use variance inflation.
+                alpha (float or None): Scaling parameter for identity matrix of the inflation.
 
 
     Returns:
 
-    final_params (np.ndarray): Final predicted parameter.
-    loss_evolution (list): Evolution of the loss value over each epoch.
-    loss_evolution_single_dict (dict): Evolutions of loss values of all particles.
+    return_dict (dict): Dictionary containing
+        final_params (np.ndarray): Final predicted parameter.
+        loss_evolution (list): Evolution of the loss value over each epoch.
+        loss_evolution_single_dict (dict): Evolutions of loss values of all particles.
+        batch_particle_dict (dict or None): Dictionary with the final batch-particle-connection.
+        param_init_dict (dict): Dictionary with the initial parameter estimates for each particle.
+        param_dict (dict): Dictionary with the final parameter estimates for each particle.
+        A (np.ndarray): Matrix A for the model Ax = y + noise.
+        y (np.array): True target variable.
+        tik_regularize (bool): Whether or not regularization was added to the model.
+        tik_lambda (int or None): Lambda parameter in Tikhonov regularization.
+        var_inflation (bool): Whether or not variance inflation was used.
+        x_opt_subspace (float or None): Optimal parameter if subspace property holds.
+        x_opt_fullSpace (float or None): Optimal parameter if subspace property does not hold.
+
 
     """
 
@@ -1360,34 +1369,32 @@ def enkf_linear_inverse_problem_analysis(setting_dict,
     epochs = setting_dict["epochs"]
     batch_size = setting_dict["batch_size"]
     noise = setting_dict["noise"]
+    if noise:
+        raise NotImplementedError("Case with noise is currently very unstable. Please do not use noise. This issue will be solved in future versions.")
     std = setting_dict["std"]
-    h_0 = setting_dict["h_0"]
-    epsilon = setting_dict["epsilon"]
-    loss_type = setting_dict["loss"]
+    h_t = setting_dict["stepsize"]
 
     if analysis_dict is None:
         disjoint_batch = True
         batch_particle_connection = False
         batch_particle_shuffle = None
-        update_all = False
         tik_regularize = False
         tik_lambda = 0
-        reg_mse_stop = False
-        reg_stop = False
-        batch_mse = False
+        var_inflation = False
+        var_alpha = None
     else:
         disjoint_batch = analysis_dict["disjoint_batch"]
         batch_particle_connection = analysis_dict["batch_particle_connection"]["connect"]
         batch_particle_shuffle = analysis_dict["batch_particle_connection"]["shuffle"]
-        update_all = analysis_dict["batch_particle_connection"]["update_all"]
+        if particles == int(A.shape[0] / batch_size) and batch_particle_shuffle == "permute":
+            batch_particle_shuffle = "particle"
         tik_regularize = analysis_dict["tikhonov"]["regularize"]
         tik_lambda = analysis_dict["tikhonov"]["lambda"]
-        reg_mse_stop = analysis_dict["tikhonov"]["reg_mse_stop"]
-        reg_stop = False
-        batch_mse = analysis_dict["batch_evaluation"]
+        var_inflation = analysis_dict["variance_inflation"]["inflation"]
+        var_alpha = analysis_dict["variance_inflation"]["alpha"]
 
-    if batch_size == A.shape[0] and batch_mse == True:
-        batch_mse = False
+    if not batch_particle_connection:
+        tik_regularize = False
 
     if tik_lambda is None:
         tik_lambda = 0
@@ -1397,47 +1404,29 @@ def enkf_linear_inverse_problem_analysis(setting_dict,
 
     if noise:
         gamma_HM12 = np.sqrt(np.linalg.inv(np.diag(std)))
+        gamma_noise = np.linalg.inv(np.diag(std))
     else:
         gamma_HM12 = None
+        gamma_noise = None
 
     def model_func(mat, param):
         if tik_regularize:
-            mat = np.vstack([mat, tik_lambda * np.identity(n = param.shape[0])])
+            mat = np.vstack([mat, np.sqrt(tik_lambda) * np.identity(n = param.shape[0])])
         return np.dot(mat, param)
 
-    def loss(y_true, y_pred, reg, gamma_HM12):
+    def loss(y_true, y_pred, param, gamma_HM12):
         if tik_regularize:
             y_true = np.hstack([y_true, np.zeros(shape = (y_pred.shape[0] - y_true.shape[0],))])
         if not noise:
-            if loss_type == "mse":
-                if not tik_regularize:
-                    return mean_squared_error(y_true, y_pred)
-                else:
-                    return mean_squared_error(y_true, y_pred) + tik_lambda * np.sum(reg**2)
-            elif loss_type == "rel_mse":
-                if not tik_regularize:
-                    return mean_squared_error(y_true, y_pred) / np.mean(y_true)
-                else:
-                    return mean_squared_error(y_true, y_pred) / np.mean(y_true) + tik_lambda * np.sum(reg**2)
+            if not tik_regularize:
+                return mean_squared_error(y_true, y_pred)
+            else:
+                return mean_squared_error(y_true, y_pred) + tik_lambda * np.sum(param**2)
         else:
-            if loss_type == "mse":
-                if not tik_regularize:
-                    return np.mean(np.dot(gamma_HM12, y_true - y_pred)**2)
-                else:
-                    return np.mean(np.dot(gamma_HM12, y_true - y_pred)**2) + tik_lambda * np.sum(reg**2)
-            elif loss_type == "rel_mse":
-                if not tik_regularize:
-                    return np.mean(np.dot(gamma_HM12, y_true - y_pred)**2) / np.mean(y_true)
-                else:
-                    return np.mean(np.dot(gamma_HM12, y_true - y_pred)**2) / np.mean(y_true) + tik_lambda * np.sum(reg**2)
-
-    def grad_loss(y_true, y_pred, gamma_HM12):
-        if tik_regularize:
-            y_true = np.hstack([y_true, np.zeros(shape = (y_pred.shape[0] - y_true.shape[0],))])
-        if not noise:
-            return (-2) / y_true.shape[0] * (y_true - y_pred)
-        else:
-            return (-2) / y_true.shape[0] * np.diag(gamma_HM12) * (y_true - y_pred)
+            if not tik_regularize:
+                return 1/y_true.shape[0] * (np.transpose(gamma_HM12 @ y_true - y_pred) @ (gamma_HM12 @ y_true - y_pred))
+            else:
+                return 1/y_true.shape[0] * (np.transpose(gamma_HM12 @ y_true - y_pred) @ (gamma_HM12 @ y_true - y_pred)) + tik_lambda * np.sum(param**2)
 
     if batch_size is None:
         batch_size = A.shape[0]
@@ -1457,7 +1446,7 @@ def enkf_linear_inverse_problem_analysis(setting_dict,
         A_batches = [A[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
         y_batches = [y[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
         if noise:
-            gamma_batches = [gamma_HM12[indices][int(batch_indices[i]):int(batch_indices[i+1]), int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
+            gamma_noise_batches = [gamma_noise[indices][int(batch_indices[i]):int(batch_indices[i+1]), int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
     else:
         if last_batch_size != 0:
             indices = [np.random.choice(A.shape[0], size = batch_size, replace = True) for i in range(num_batches-1)]
@@ -1467,7 +1456,7 @@ def enkf_linear_inverse_problem_analysis(setting_dict,
         A_batches = [A[indices[i]] for i in range(len(indices))]
         y_batches = [y[indices[i]] for i in range(len(indices))]
         if noise:
-            gamma_batches = [gamma_HM12[indices[i], indices[i]] for i in range(len(indices))]
+            gamma_noise_batches = [gamma_noise[indices[i], indices[i]] for i in range(len(indices))]
 
     if batch_particle_connection:
         batch_particle_dict = {}
@@ -1494,38 +1483,22 @@ def enkf_linear_inverse_problem_analysis(setting_dict,
 
     param_dict = {}
     param_init_dict = {}
-    y_pred_dict = {}
-    jacobian_dict = {}
-    loss_dict = {}
 
     for i in range(particles):
         param_dict["particle_{}".format(i+1)] = np.random.normal(loc = 0, scale = 1, size = x.shape)
         param_init_dict["particle_{}".format(i+1)] = param_dict["particle_{}".format(i+1)]
-        y_pred_dict["particle_{}".format(i+1)] = model_func(A, param_dict["particle_{}".format(i+1)])
-        jacobian_dict["particle_{}".format(i+1)] = grad_loss(y, y_pred_dict["particle_{}".format(i+1)], gamma_HM12)
-        loss_dict["particle_{}".format(i+1)] = loss(y, y_pred_dict["particle_{}".format(i+1)], param_dict["particle_{}".format(i+1)], gamma_HM12)
 
     param_mean = np.mean(list(param_dict.values()), axis = 0)
     final_params = param_mean
 
     loss_evolution = []
-    loss_evolution.append(loss(y, np.dot(A, param_mean), param_dict["particle_{}".format(i+1)], gamma_HM12))
-    if tik_regularize and reg_mse_stop:
-        loss_evolution_reg = []
-        loss_evolution_reg.append(loss(y, model_func(A, param_mean), param_dict["particle_{}".format(i+1)], gamma_HM12))
+    loss_evolution.append(loss(y, np.dot(A, param_mean), param_mean, gamma_HM12))
 
     loss_evolution_single_dict = {}
     for i in range(particles):
         loss_evolution_single_dict["particle_{}".format(i+1)] = [loss(y, np.dot(A, param_dict["particle_{}".format(i+1)]), param_dict["particle_{}".format(i+1)], gamma_HM12)]
 
     for epoch in range(epochs):
-
-        if tik_regularize and reg_mse_stop:
-            if epoch >= 1:
-                if loss_evolution_reg[epoch] > loss_evolution_reg[epoch-1]:
-                    reg_stop = True
-                    print("Loss containing Tikhonov regularization starts to rise. Algorithm is stopped after epoch {}.".format(epoch))
-                    break
 
         if batch_particle_connection and batch_particle_shuffle == "permute":
             shuffled_indices = np.hstack(list(batch_particle_dict.values()))
@@ -1560,7 +1533,7 @@ def enkf_linear_inverse_problem_analysis(setting_dict,
                 A_batches = [A[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
                 y_batches = [y[indices][int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
                 if noise:
-                    gamma_batches = [gamma_HM12[indices][int(batch_indices[i]):int(batch_indices[i+1]), int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
+                    gamma_noise_batches = [gamma_noise[indices][int(batch_indices[i]):int(batch_indices[i+1]), int(batch_indices[i]):int(batch_indices[i+1])] for i in range(len(batch_indices)-1)]
             else:
                 if last_batch_size != 0:
                     indices = [np.random.choice(A.shape[0], size = batch_size, replace = True) for i in range(num_batches-1)]
@@ -1570,13 +1543,10 @@ def enkf_linear_inverse_problem_analysis(setting_dict,
                 A_batches = [A[indices[i]] for i in range(len(indices))]
                 y_batches = [y[indices[i]] for i in range(len(indices))]
                 if noise:
-                    gamma_batches = [gamma_HM12[indices[i], indices[i]] for i in range(len(indices))]
+                    gamma_noise_batches = [gamma_noise[indices[i], indices[i]] for i in range(len(indices))]
 
         for b in range(num_batches):
             batch_particles = []
-            y_pred_batch_dict = {}
-            jacobian_batch_dict = {}
-            # update the predictions, jacobian and loss for the new parameters
             for i in range(particles):
                 if batch_particle_connection:
                     if num_batches == particles or num_batches > particles:
@@ -1585,120 +1555,94 @@ def enkf_linear_inverse_problem_analysis(setting_dict,
                     else:
                         if i+1 not in batch_particle_dict["batch_{}".format(str(b+1))]:
                             continue
-                if batch_particle_connection:
                     batch_particles.append(i+1)
-
-                if noise:
-                    gamma_HM12_batch = gamma_batches[b]
-                else:
-                    gamma_HM12_batch = None
-
-                y_pred_dict["particle_{}".format(i+1)] = model_func(A_batches[b], param_dict["particle_{}".format(i+1)])
-                y_pred_batch_dict["particle_{}".format(i+1)] = y_pred_dict["particle_{}".format(i+1)]
-                jacobian_dict["particle_{}".format(i+1)] = grad_loss(y_batches[b], y_pred_dict["particle_{}".format(i+1)], gamma_HM12_batch)
-                jacobian_batch_dict["particle_{}".format(i+1)] = jacobian_dict["particle_{}".format(i+1)]
-                loss_dict["particle_{}".format(i+1)] = loss(y_batches[b], y_pred_dict["particle_{}".format(i+1)], param_dict["particle_{}".format(i+1)], gamma_HM12_batch)
+                    batch_particles.sort()
 
             if not batch_particle_connection:
-                # compute the mean of the predictions
-                y_pred_mean = np.mean(list(y_pred_dict.values()), axis = 0)
-
-                # compute the matrix D elementwise
-                d = np.zeros(shape = (particles, particles))
-                for k in range(particles):
-                    y_pred_centered = y_pred_dict["particle_{}".format(str(k+1))] - y_pred_mean
-                    #print(np.linalg.norm(y_pred_centered))
-                    for j in range(particles):
-                        d[k][j] = np.dot(y_pred_centered, jacobian_dict["particle_{}".format(str(j+1))])
-                    #print(np.linalg.norm(jacobian_dict["particle_{}".format(str(k+1))]))
-                d = np.transpose(d)
-
-                # compute the scalar h_t
-                h_t = h_0 / (np.sqrt(np.sum(d**2)) + epsilon)
-                #print(h_t)
-                # matrix with particle parameters as row vectors
-                params_all_ptcls = np.array(list(param_dict.values()))
-
-                # compute the matrix with the updates for each particle
-                params_all_ptcls = params_all_ptcls - h_t * np.dot(d, params_all_ptcls)
-
-                # write the updates back into the dictionary
+                C_dict = {}
+                param_mean_C = np.mean(np.array(list(param_dict.values())), axis = 0)
                 for i in range(particles):
-                    param_dict["particle_{}".format(str(i+1))] = params_all_ptcls[i]
+                    C_dict["particle_{}".format(str(i+1))] = np.outer(param_dict["particle_{}".format(str(i+1))] - param_mean_C,
+                                                                      param_dict["particle_{}".format(str(i+1))] - param_mean_C)
+                C = np.mean(np.array(list(C_dict.values())), axis = 0)
+                if var_inflation:
+                    var_infl = var_alpha * np.identity(n = C.shape[0])
+                    C = C + var_infl
 
-                if batch_mse:
-                    param_mean = np.mean(params_all_ptcls, axis = 0)
-                    loss_evolution.append(loss(y, np.dot(A, param_mean), 0, gamma_HM12))
+                D_dict = {}
+                for i in range(particles):
+                    if not noise:
+                        if not tik_regularize:
+                            D_dict["particle_{}".format(str(i+1))] = np.transpose(A_batches[b]) @ A_batches[b] @ param_dict["particle_{}".format(str(i+1))] - np.transpose(A_batches[b]) @ y_batches[b]
+                        else:
+                            D_dict["particle_{}".format(str(i+1))] = np.transpose(A_batches[b]) @ A_batches[b] @ param_dict["particle_{}".format(str(i+1))] - np.transpose(A_batches[b]) @ y_batches[b] + tik_lambda * param_dict["particle_{}".format(str(i+1))]
+                    else:
+                        if not tik_regularize:
+                            D_dict["particle_{}".format(str(i+1))] = np.transpose(A_batches[b]) @ gamma_noise_batches[b] @ A_batches[b] @ param_dict["particle_{}".format(str(i+1))] - np.transpose(A_batches[b]) @ gamma_noise_batches[b] @ y_batches[b]
+                        else:
+                            D_dict["particle_{}".format(str(i+1))] = np.transpose(A_batches[b]) @ gamma_noise_batches[b] @ A_batches[b] @ param_dict["particle_{}".format(str(i+1))] - np.transpose(A_batches[b]) @ gamma_noise_batches[b] @ y_batches[b] + tik_lambda * param_dict["particle_{}".format(str(i+1))]
 
-            elif batch_particle_connection and not update_all:
-                # compute the mean of the predictions
-                y_pred_mean = np.mean(list(y_pred_batch_dict.values()), axis = 0)
+                for i in range(particles):
+                    param_dict["particle_{}".format(str(i+1))] = param_dict["particle_{}".format(str(i+1))] - h_t * C @ D_dict["particle_{}".format(str(i+1))]
 
-                # compute the matrix D elementwise
-                d = np.zeros(shape = (len(y_pred_batch_dict), len(y_pred_batch_dict)))
-                for k in range(len(y_pred_batch_dict)):
-                    y_pred_centered = list(y_pred_batch_dict.values())[k] - y_pred_mean
-                    for j in range(len(y_pred_batch_dict)):
-                        d[k][j] = np.dot(y_pred_centered, list(jacobian_batch_dict.values())[j])
-                d = np.transpose(d)
-
-                # compute the scalar h_t
-                h_t = h_0 / (np.sqrt(np.sum(d**2)) + epsilon)
-
-                # matrix with particle parameters as row vectors
-                param_batch_dict = {}
-                for i in range(len(batch_particles)):
-                    param_batch_dict["particle_{}".format(batch_particles[i])] = param_dict["particle_{}".format(batch_particles[i])]
-                    params_all_ptcls = np.array(list(param_batch_dict.values()))
-
-                # compute the matrix with the updates for each particle
-                params_all_ptcls = params_all_ptcls - h_t * np.dot(d, params_all_ptcls)
-
-                # write the updates back into the dictionary
-                for i in range(len(batch_particles)):
-                    param_dict["particle_{}".format(batch_particles[i])] = params_all_ptcls[i]
-
-        if batch_particle_connection and update_all:
-            # compute the mean of the predictions
-            y_pred_mean = np.mean(list(y_pred_dict.values()), axis = 0)
-
-            # compute the matrix D elementwise
-            d = np.zeros(shape = (particles, particles))
-            for k in range(particles):
-                y_pred_centered = y_pred_dict["particle_{}".format(str(k+1))] - y_pred_mean
-                #print(np.linalg.norm(y_pred_centered))
-                for j in range(particles):
-                    d[k][j] = np.dot(y_pred_centered, jacobian_dict["particle_{}".format(str(j+1))])
-                #print(np.linalg.norm(jacobian_dict["particle_{}".format(str(k+1))]))
-            d = np.transpose(d)
-
-            # compute the scalar h_t
-            h_t = h_0 / (np.sqrt(np.sum(d**2)) + epsilon)
-            #print(h_t)
-
-            # matrix with particle parameters as row vectors
-            params_all_ptcls = np.array(list(param_dict.values()))
-
-            # compute the matrix with the updates for each particle
-            params_all_ptcls = params_all_ptcls - h_t * np.dot(d, params_all_ptcls)
-
-            # write the updates back into the dictionary
+        if batch_particle_connection:
+            C_dict = {}
+            param_mean_C = np.mean(np.array(list(param_dict.values())), axis = 0)
             for i in range(particles):
-                param_dict["particle_{}".format(str(i+1))] = params_all_ptcls[i]
+                C_dict["particle_{}".format(str(i+1))] = np.outer(param_dict["particle_{}".format(str(i+1))] - param_mean_C,
+                                                                  param_dict["particle_{}".format(str(i+1))] - param_mean_C)
+            C = np.mean(np.array(list(C_dict.values())), axis = 0)
+            if var_inflation:
+                var_infl = var_alpha * np.identity(n = C.shape[0])
+                C = C + var_infl
+
+            bp_dict = {}
+            for key in list(batch_particle_dict.keys()):
+                try: # Error if one-on-one connection
+                    list(batch_particle_dict[key])
+                except: # If only one particle per batch
+                    bp_dict["particle_{}".format(str(batch_particle_dict[key]))] = int(key.split("_")[1])
+                else: # If multiple particles per batch
+                    for p in batch_particle_dict[key]:
+                        bp_dict["particle_{}".format(str(p))] = int(key.split("_")[1])
+
+            D_dict = {}
+            for i in range(particles):
+                batch = bp_dict["particle_{}".format(str(i+1))] - 1
+                if not noise:
+                    if not tik_regularize:
+                        D_dict["particle_{}".format(str(i+1))] = np.transpose(A_batches[batch]) @ A_batches[batch] @ param_dict["particle_{}".format(str(i+1))] - np.transpose(A_batches[batch]) @ y_batches[batch]
+                    else:
+                        D_dict["particle_{}".format(str(i+1))] = np.transpose(A_batches[batch]) @ A_batches[batch] @ param_dict["particle_{}".format(str(i+1))] - np.transpose(A_batches[batch]) @ y_batches[batch] + tik_lambda * param_dict["particle_{}".format(str(i+1))]
+                else:
+                    if not tik_regularize:
+                        D_dict["particle_{}".format(str(i+1))] = np.transpose(A_batches[batch]) @ gamma_noise_batches[batch] @ A_batches[batch] @ param_dict["particle_{}".format(str(i+1))] - np.transpose(A_batches[batch]) @ gamma_noise_batches[batch] @ y_batches[batch]
+                    else:
+                        D_dict["particle_{}".format(str(i+1))] = np.transpose(A_batches[batch]) @ gamma_noise_batches[batch] @ A_batches[batch] @ param_dict["particle_{}".format(str(i+1))] - np.transpose(A_batches[batch]) @ gamma_noise_batches[batch] @ y_batches[batch] + tik_lambda * param_dict["particle_{}".format(str(i+1))]
+
+            for i in range(particles):
+                param_dict["particle_{}".format(str(i+1))] = param_dict["particle_{}".format(str(i+1))] - h_t * C @ D_dict["particle_{}".format(str(i+1))]
 
         # compute loss for the parameter means
-        if not batch_particle_connection and batch_mse:
-            continue
-        param_mean = np.mean(params_all_ptcls, axis = 0)
-        loss_evolution.append(loss(y, np.dot(A, param_mean), 0, 1))
-        if tik_regularize and reg_mse_stop:
-            loss_evolution_reg.append(loss(y, model_func(A, param_mean), param_mean, 1))
+        param_mean = np.mean(np.array(list(param_dict.values())), axis = 0)
+        if not noise:
+            try:
+                loss_evolution.append(loss(y, np.dot(A, param_mean), 0, 1))
+            except ValueError:
+                print("Stepsize is too large. Choose a smaller one.")
+        else:
+            try:
+                loss_evolution.append(loss(y, np.dot(A, param_mean), 0, gamma_noise))
+            except ValueError:
+                print("Stepsize is too large. Choose a smaller one.")
 
         for i in range(particles):
-            loss_evolution_single_dict["particle_{}".format(i+1)].append(loss(y, np.dot(A, param_dict["particle_{}".format(i+1)]), 0, 1))
+            if not noise:
+                loss_evolution_single_dict["particle_{}".format(i+1)].append(loss(y, np.dot(A, param_dict["particle_{}".format(i+1)]), 0, 1))
+            else:
+                loss_evolution_single_dict["particle_{}".format(i+1)].append(loss(y, np.dot(A, param_dict["particle_{}".format(i+1)]), 0, gamma_noise))
 
-    if not reg_stop:
-        final_params = param_mean
+    final_params = param_mean
 
     return_dict = {}
     return_dict["final_params"] = final_params
@@ -1709,7 +1653,53 @@ def enkf_linear_inverse_problem_analysis(setting_dict,
     return_dict["param_dict"] = param_dict
     return_dict["A"] = A
     return_dict["y"] = y
-    return_dict["A_batches"] = A_batches
-    return_dict["y_batches"] = y_batches
+    return_dict["tik_regularize"] = tik_regularize
+    return_dict["tik_lambda"] = tik_lambda
+    return_dict["var_inflation"] = var_inflation
+
+    # compute the optimal parameter for comparison
+    A = return_dict["A"]
+    y = return_dict["y"]
+
+    if not return_dict["var_inflation"]:
+        x_0 = np.transpose(np.array(list(return_dict["param_init_dict"].values())))
+        x_0_mean = np.transpose(np.tile(np.mean(x_0, axis = 1), (x_0.shape[1],1)))
+        x_0 = x_0 - x_0_mean
+
+        if return_dict["tik_regularize"]:
+            lambdaI = np.sqrt(return_dict["tik_lambda"]) * np.identity(n = x_0.shape[0])
+            A_lambda = np.vstack([A, lambdaI])
+            y_0 = np.hstack([y, np.zeros(x_0.shape[0])])
+
+        if return_dict["tik_regularize"]:
+            if not noise:
+                beta = np.linalg.inv(np.transpose(x_0) @ np.transpose(A_lambda) @ A_lambda @ x_0 + return_dict["tik_lambda"] * np.identity(n = x_0.shape[1])) @ np.transpose(x_0) @ np.transpose(A_lambda) @ y_0
+            else:
+                beta = np.linalg.inv(np.transpose(x_0) @ np.transpose(A_lambda) @ gamma_noise @ A_lambda @ x_0 + return_dict["tik_lambda"] * np.identity(n = x_0.shape[1])) @ np.transpose(x_0) @ np.transpose(A_lambda) @ gamma_noise @ y_0
+        else:
+            delta = 0.005
+            if not noise:
+                beta = np.linalg.inv(np.transpose(x_0) @ np.transpose(A) @ A @ x_0 + delta * np.identity(n = x_0.shape[1])) @ np.transpose(x_0) @ np.transpose(A) @ y_0
+            else:
+                beta = np.linalg.inv(np.transpose(x_0) @ np.transpose(A) @ gamma_noise @ A @ x_0 + delta * np.identity(n = x_0.shape[1])) @ np.transpose(x_0) @ np.transpose(A) @ gamma_noise @ y_0
+
+        x_opt_subspace = x_0 @ beta
+        x_opt_fullSpace = None
+
+    else:
+        if return_dict["tik_regularize"]:
+            if not noise:
+                x_opt_fullSpace = np.linalg.inv(np.transpose(A) @ A + return_dict["tik_lambda"] * np.identity(n = A.shape[1])) @ np.transpose(A) @ y
+            else:
+                x_opt_fullSpace = np.linalg.inv(np.transpose(A) @ gamma_noise @ A + return_dict["tik_lambda"] * np.identity(n = A.shape[1])) @ np.transpose(A) @ gamma_noise @ y
+        else:
+            if not noise:
+                x_opt_fullSpace = np.linalg.inv(np.transpose(A) @ A) @ np.transpose(A) @ y
+            else:
+                x_opt_fullSpace = np.linalg.inv(np.transpose(A) @ gamma_noise @ A) @ np.transpose(A) @ gamma_noise @ y
+        x_opt_subspace = None
+
+    return_dict["x_opt_subspace"] = x_opt_subspace
+    return_dict["x_opt_fullSpace"] = x_opt_fullSpace
 
     return return_dict

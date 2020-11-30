@@ -6,6 +6,7 @@
 #   nn_conf_mat
 #   nn_plot_particle_acc
 #   nn_plot_particle_mse
+#   nn_plot_final_cosine_sim
 #   plot_IP_loss_evolution
 #   plot_IP_loss_evolution_many
 #   plot_IP_true_false
@@ -15,6 +16,7 @@
 #   plot_IP_particle_cosine_sim
 #   plot_IP_iteration_cosine_sim
 #   plot_IP_final_cosine_sim
+#   plot_IP_convergence
 #   nn_plot_mse_old
 #   nn_plot_iter_acc
 #   nn_plot_epoch_acc
@@ -24,15 +26,13 @@
 import sys
 sys.path.insert(1, "../architecture")
 
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import reproducible
-from sklearn.linear_model import LinearRegression
 from sklearn.metrics import confusion_matrix, mean_squared_error
 from sklearn.metrics.pairwise import cosine_similarity
 import seaborn as sns
-from enkf_functions import enkf_inverse_problem, enkf_linear_inverse_problem_analysis
+from enkf_functions import enkf_inverse_problem, enkf_linear_problem_analysis
 from saving_functions import load_objects
 from model_functions import nn_model_structure, nn_model_compile
 from data_prep_functions import mnist_prep
@@ -439,7 +439,7 @@ def nn_plot_particle_acc(model_object_path,
 
     Parameters:
 
-    model_object_path (str): File path to .pckl-file with the models objects.
+    model_object_path (str): File path to .pckl-file with the model's objects.
     train_test (str): Whether to plot the training or test accuracy. Must be either "train" or "test".
     rel_limit_exceed (float): Percentage to exceed the axis limits by.
     return_mses (bool): Whether or not to return the particle accuracies.
@@ -519,7 +519,7 @@ def nn_plot_particle_mse(model_object_path,
 
     Parameters:
 
-    model_object_path (str): File path to .pckl-file with the models objects.
+    model_object_path (str): File path to .pckl-file with the model's objects.
     train_test (str): Whether to plot the training or test MSE. Must be either "train" or "test".
     rel_limit_exceed (float): Percentage to exceed the axis limits by.
     return_mses (bool): Whether or not to return the particle MSEs.
@@ -579,9 +579,55 @@ def nn_plot_particle_mse(model_object_path,
     if return_mses:
         return final_train_mse, final_test_mse
 
+def nn_plot_final_cosine_sim(model_object_path,
+                             layer = 1,
+                             bins = 50,
+                             save = None
+                             ):
+
+    """ Plot the histogram of the final cosine similarities of the final parameters of all particles (for a neural network).
+
+
+    Parameters:
+
+    model_object_path (str): File path to .pckl-file with the model's objects.
+    layer (int): Which layer to evaluate the cosine similarities on.
+    bins (int): Number of bins.
+    save (str or None): File path for saving the plot.
+
+    """
+
+    obj_dict = load_objects(model_object_path)
+    weights_dict = obj_dict["results"]["weights_dict"]
+
+    if int(len(weights_dict["model_1"]) / 2) < layer:
+        raise ValueError("Layer number is too big. Please choose a different number.")
+
+    weights_layer_dict = {}
+    for particle, layer_weights in weights_dict.items():
+        weights_layer_dict[particle] = layer_weights[2*(layer-1)].ravel()
+
+    cos_matrix = np.tril(cosine_similarity(list(weights_layer_dict.values())), k = -1)
+    cosines = cos_matrix[cos_matrix != 0]
+
+    if bins > len(cosines):
+        bins = len(cosines)
+
+    plt.figure(figsize = (8,5))
+    plt.hist(cosines, bins = bins, alpha = 0.7)
+    plt.xlabel("Cosine similarity for layer {}".format(layer), fontsize = 16)
+    plt.ylabel("Number of particle combinations", fontsize = 16)
+    plt.xticks(fontsize = 14)
+    plt.yticks(fontsize = 14)
+    if save is not None:
+        plt.savefig(save)
+    plt.show()
+
 def plot_IP_loss_evolution(return_dict,
                            start_iteration = 1,
                            reg_line = False,
+                           tick_diff = 5,
+                           marker = True,
                            xlabel = "Iteration",
                            save = None
                            ):
@@ -592,9 +638,11 @@ def plot_IP_loss_evolution(return_dict,
 
     Parameters:
 
-    return_dict (dict): Dictionary from enkf_inverse_problem or enkf_linear_inverse_problem_analysis.
+    return_dict (dict): Dictionary from enkf_inverse_problem or enkf_linear_problem_analysis.
     start_iteration (int): First iteration to be plotted. Helpful for large difference in first and last loss value.
-    reg_line (bool): Whether or not to plot the line of the corresponding analytic linear regression MSE.
+    reg_line (bool): Whether or not to plot the line of the corresponding analytic linear regression MSE. Only for enkf_linear_inverse_problem_analysis.
+    tick_diff (int): Difference between two ticks on the x-axis.
+    marker (bool): Whether or not to use square markers.
     xlabel (str): Label of the x-axis. Should be either "Iteration" or "Epoch".
     save (str or None): File path for saving the plot.
 
@@ -605,33 +653,25 @@ def plot_IP_loss_evolution(return_dict,
 
     xticks = np.linspace(start = 0,
                          stop = len(loss_evolution) - 1,
-                         num = int((len(loss_evolution) - 1) / 5 + 1))
+                         num = int((len(loss_evolution) - 1) / tick_diff + 1))
     xticks = np.delete(xticks, np.where(xticks <= start_iteration))
     xticks = np.append(xticks, [start_iteration])
 
+    if reg_line and return_dict["var_inflation"]:
+        reg_line = False
+
     if reg_line:
-        A = return_dict["A"]
-        y_pred_init_dict = {}
-        if return_dict["tik_regularize"]:
-                A = np.vstack([A, np.identity(n = A.shape[1])])
-        for i in range(len(return_dict["param_init_dict"])):
-            y_pred_init_dict["particle_{}".format(str(i+1))] = np.dot(A, return_dict["param_init_dict"]["particle_{}".format(str(i+1))])
+        mse = mean_squared_error(return_dict["A"] @ return_dict["x_opt_subspace"], return_dict["y"])
 
-        X = pd.DataFrame(y_pred_init_dict)
-        y = return_dict["y"]
-
-        if return_dict["tik_regularize"]:
-            y = np.hstack([y, np.zeros(A.shape[1])])
-
-        lm = LinearRegression(fit_intercept = False).fit(X, y)
-
-        y_pred = lm.predict(X)
-        mse = mean_squared_error(y_pred, y)
+    if marker:
+        marker = "s"
+    else:
+        marker = None
 
     plt.figure(figsize = (8,5))
     plt.plot(np.arange(len(loss_evolution))[start_iteration:],
              loss_evolution[start_iteration:],
-             marker = "s")
+             marker = marker)
     if reg_line:
         plt.hlines(mse,
                    start_iteration,
@@ -643,7 +683,8 @@ def plot_IP_loss_evolution(return_dict,
     plt.ylabel("Mean Squared Error", fontsize = 16)
     plt.xticks(ticks = xticks, fontsize = 14)
     plt.yticks(fontsize = 14)
-    plt.legend(loc = "upper right")
+    if reg_line:
+        plt.legend(loc = "upper right")
     if save is not None:
         plt.savefig(save)
     plt.show()
@@ -668,7 +709,7 @@ def plot_IP_loss_evolution_many(setting_dict,
 
     Parameters:
 
-    setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems or enkf_inverse_problems_analysis.
+    setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems or enkf_linear_problem_analysis.
     parameter (str): Parameter to vary. Must be one of the keys in setting_dict.
     parameter_list (list): Different values for the parameter.
     start_iteration (int): First iteration to be plotted. Helpful for large difference in first and last loss value.
@@ -676,7 +717,7 @@ def plot_IP_loss_evolution_many(setting_dict,
     log (bool): Whether or not to use a logarithmic y-scale  in the plot. Helpful for large differences within particles.
     tick_diff (int): Difference between two ticks on the x-axis.
     xlabel (str): Label of the x-axis. Should be either "Iteration" or "Epoch".
-    analysis_dict (dict or None): Dictionary containing the necessary inputs for enkf_inverse_problems_analysis.
+    analysis_dict (dict or None): Dictionary containing the necessary inputs for enkf_linear_problem_analysis.
     linear (bool): Whether or not it is a linear problem.
     seed (int or None): Whether or not to set a seed before each run.
     save (str or None): File path for saving the plot.
@@ -702,8 +743,8 @@ def plot_IP_loss_evolution_many(setting_dict,
         if not linear:
             return_dict = enkf_inverse_problem(setting_dict)
         else:
-            return_dict = enkf_linear_inverse_problem_analysis(setting_dict,
-                                                               analysis_dict)
+            return_dict = enkf_linear_problem_analysis(setting_dict,
+                                                       analysis_dict)
         if parameter == "particles":
             loss_evolution_dict["P{}".format(parameter_list[i])] = return_dict["loss_evolution"]
         elif parameter == "batch_size":
@@ -750,7 +791,7 @@ def plot_IP_true_false(setting_dict,
             model_func (function): Function to apply to x.
             x (np.array): True parameter.
             y (np.array): True target variables.
-        return_dict (dict): Dictionary from enkf_inverse_problem or enkf_linear_inverse_problem_analysis.
+        return_dict (dict): Dictionary from enkf_inverse_problem or enkf_linear_problem_analysis.
         num_points (int or None): Number of points to plot.
         x_axis (bool): Whether or not to use the true parameters as x-axis values.
         save (str or None): File path for saving the plot.
@@ -795,7 +836,7 @@ def plot_IP_particle_loss(return_dict,
 
     Parameters:
 
-    return_dict (dict): Dictionary from enkf_inverse_problem or enkf_linear_inverse_problem_analysis.
+    return_dict (dict): Dictionary from enkf_inverse_problem or enkf_linear_problem_analysis.
     rel_limit_exceed (float): Percentage to exceed the axis limits by.
     save (str or None): File path for saving the plot.
 
@@ -908,7 +949,7 @@ def plot_IP_particle_cosine_sim(setting_dict,
 
     Parameters:
 
-    setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems.
+    setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems or enkf_linear_problem_analysis.
     particle_list (list): Different numbers of particles.
     analysis_dict (dict or None): Dictionary containing the necessary inputs for enkf_inverse_problems_analysis.
     linear (bool): Whether or not it is a linear problem.
@@ -921,8 +962,8 @@ def plot_IP_particle_cosine_sim(setting_dict,
     for i in range(len(particle_list)):
         setting_dict["particles"] = particle_list[i]
         if linear:
-            return_dict = enkf_linear_inverse_problem_analysis(setting_dict,
-                                                               analysis_dict)
+            return_dict = enkf_linear_problem_analysis(setting_dict,
+                                                       analysis_dict)
         else:
             return_dict = enkf_inverse_problem(setting_dict)
         cos_matrix = np.tril(cosine_similarity(list(return_dict["param_dict"].values())), k = -1)
@@ -954,9 +995,9 @@ def plot_IP_iteration_cosine_sim(setting_dict,
 
     Parameters:
 
-    setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems.
+    setting_dict (dict): Dictionary containing the necessary inputs for enkf_inverse_problems or enkf_linear_problem_analysis.
     iteration_list (list): Different numbers of iterations.
-    analysis_dict (dict or None): Dictionary containing the necessary inputs for enkf_inverse_problems_analysis.
+    analysis_dict (dict or None): Dictionary containing the necessary inputs for enkf_linear_problem_analysis.
     linear (bool): Whether or not it is a linear problem.
     save (str or None): File path for saving the plot.
 
@@ -969,8 +1010,8 @@ def plot_IP_iteration_cosine_sim(setting_dict,
         setting_dict["epochs"] = iteration_list[i]
         np.random.seed(42)
         if linear:
-            return_dict = enkf_linear_inverse_problem_analysis(setting_dict,
-                                                               analysis_dict)
+            return_dict = enkf_linear_problem_analysis(setting_dict,
+                                                       analysis_dict)
         else:
             return_dict = enkf_inverse_problem(setting_dict)
         cos_matrix = np.tril(cosine_similarity(list(return_dict["param_dict"].values())), k = -1)
@@ -992,6 +1033,7 @@ def plot_IP_iteration_cosine_sim(setting_dict,
 
 def plot_IP_final_cosine_sim(return_dict,
                              bins = 50,
+                             opt_comparison = False,
                              save = None
                              ):
 
@@ -1000,8 +1042,9 @@ def plot_IP_final_cosine_sim(return_dict,
 
     Parameters:
 
-    return_dict (dict): Dictionary from enkf_inverse_problem or enkf_linear_inverse_problem_analysis.
+    return_dict (dict): Dictionary from enkf_inverse_problem or enkf_linear_problem_analysis.
     bins (int): Number of bins.
+    opt_comparison (bool): Whether or not to add a vertical line for the cosine similarity between the optimal parameter and the final EnKF parameter.
     save (str or None): File path for saving the plot.
 
     """
@@ -1012,12 +1055,70 @@ def plot_IP_final_cosine_sim(return_dict,
     if bins > len(cosines):
         bins = len(cosines)
 
+    comp = False
+
     plt.figure(figsize = (8,5))
-    plt.hist(cosines, bins = bins, alpha = 0.7)
+    y, _, _ = plt.hist(cosines, bins = bins, alpha = 0.7)
+    if opt_comparison:
+        max_height = np.max(y)
+        if "x_opt_subspace" in list(return_dict.keys()) and return_dict["x_opt_subspace"] is not None:
+            plt.vlines(x = cosine_similarity([return_dict["x_opt_subspace"], return_dict["final_params"]])[1][0],
+                       ymin = 0,
+                       ymax = max_height,
+                       color = "black",
+                       label = "Similarity to optimal parameter")
+            comp = True
+        elif "x_opt_fullSpace" in list(return_dict.keys()) and return_dict["x_opt_fullSpace"] is not None:
+            plt.vlines(x = cosine_similarity([return_dict["x_opt_fullSpace"], return_dict["final_params"]])[1][0],
+                       ymin = 0,
+                       ymax = max_height,
+                       color = "black",
+                       label = "Similarity to optimal parameter")
+            comp = True
     plt.xlabel("Cosine similarity", fontsize = 16)
     plt.ylabel("Number of particle combinations", fontsize = 16)
     plt.xticks(fontsize = 14)
     plt.yticks(fontsize = 14)
+    if comp:
+        plt.legend(loc = "upper right")
+    if save is not None:
+        plt.savefig(save)
+    plt.show()
+
+def plot_IP_convergence(return_dict,
+                        log,
+                        xlabel = "Iteration",
+                        save = None
+                        ):
+
+
+    """ Plot the log-log-plot or the semi-log-plot of the evolution of the loss for a linear inverse problem.
+
+
+    Parameters:
+
+    return_dict (dict): Dictionary from enkf_inverse_problem or enkf_linear_problem_analysis.
+    log (str): Must be either "log_log" or "semi_log".
+    xlabel (str): Label of the x-axis. Should be either "Iteration" or "Epoch".
+    save (str or None): File path for saving the plot.
+
+
+    """
+
+    if log != "log_log" and log != "semi_log":
+        raise ValueError("Argument 'log' must be either 'log_log' or 'semi_log'.")
+
+    plt.figure(figsize = (8,5))
+    plt.plot(np.arange(len(return_dict["loss_evolution"]))[5:],
+             return_dict["loss_evolution"][5:])
+    plt.grid()
+    plt.xlabel(xlabel, fontsize = 16)
+    plt.ylabel("Mean Squared Error", fontsize = 16)
+    plt.xticks(fontsize = 14)
+    plt.yticks(fontsize = 14)
+    if log == "log_log":
+        plt.xscale("log")
+    plt.yscale("log")
     if save is not None:
         plt.savefig(save)
     plt.show()
