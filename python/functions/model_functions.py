@@ -13,6 +13,7 @@ sys.path.insert(1, "../architecture")
 import tensorflow
 from tensorflow.python.keras.layers import Dense
 from tensorflow.python.keras.models import Sequential
+from tensorflow.python.keras.regularizers import l2
 import numpy as np
 import reproducible
 from training_callback import BatchAccuracy
@@ -29,6 +30,8 @@ def nn_model_structure(layers,
                        weight_initializer = tensorflow.python.keras.initializers.GlorotNormal(),
                        bias_initializer = tensorflow.python.keras.initializers.GlorotNormal(),
                        activation_first = "relu",
+                       kernel_regularizer_lambda = None,
+                       bias_regularizer_lambda = None,
                        classification = True
                       ):
 
@@ -43,6 +46,8 @@ def nn_model_structure(layers,
     weight_initializer (tensorflow.python.ops.init_ops_v2): Initializer of the weights.
     bias_initializer (tensorflow.python.ops.init_ops_v2): Initializer of the biases.
     activation_first (str, or Activation object): Activation function to use in the hidden layers.
+    kernel_regularizer_lambda (float or None): Lambda value for l2 regularization.
+    bias_regularizer_lambda (float or None): Lambda value for l2 regularization.
     classification (bool): Whether it is a classification (True) or regression (False) problem.
 
 
@@ -55,6 +60,16 @@ def nn_model_structure(layers,
     if len(neurons) != layers:
         raise NNError("Wrong input shape: neurons must be of length of the value of layers.")
 
+    if kernel_regularizer_lambda is not None:
+        kernel_regularizer = l2(kernel_regularizer_lambda)
+    else:
+        kernel_regularizer = None
+
+    if bias_regularizer_lambda is not None:
+        bias_regularizer = l2(bias_regularizer_lambda)
+    else:
+        bias_regularizer = None
+
     tensorflow.python.keras.backend.clear_session()
 
     model = Sequential()
@@ -66,7 +81,9 @@ def nn_model_structure(layers,
                             activation = activation_first,
                             input_shape = (n_cols, ),
                             kernel_initializer = weight_initializer,
-                            bias_initializer = bias_initializer
+                            bias_initializer = bias_initializer,
+                            kernel_regularizer = kernel_regularizer,
+                            bias_regularizer = bias_regularizer
                            )
                      )
         elif layer == layers - 1:
@@ -76,20 +93,26 @@ def nn_model_structure(layers,
                     model.add(Dense(units = neurons[layer],
                                     activation = "sigmoid",
                                     kernel_initializer = weight_initializer,
-                                    bias_initializer = bias_initializer
+                                    bias_initializer = bias_initializer,
+                                    kernel_regularizer = kernel_regularizer,
+                                    bias_regularizer = bias_regularizer
                                    )
                              )
                 else:
                     model.add(Dense(units = neurons[layer],
                                     activation = "softmax",
                                     kernel_initializer = weight_initializer,
-                                    bias_initializer = bias_initializer
+                                    bias_initializer = bias_initializer,
+                                    kernel_regularizer = kernel_regularizer,
+                                    bias_regularizer = bias_regularizer
                                    )
                              )
             else:
                 model.add(Dense(units = neurons[layer],
                                 kernel_initializer = weight_initializer,
-                                bias_initializer = bias_initializer
+                                bias_initializer = bias_initializer,
+                                kernel_regularizer = kernel_regularizer,
+                                bias_regularizer = bias_regularizer
                                )
                          )
         # hidden layers
@@ -97,7 +120,9 @@ def nn_model_structure(layers,
             model.add(Dense(units = neurons[layer],
                             activation = activation_first,
                             kernel_initializer = weight_initializer,
-                            bias_initializer = bias_initializer
+                            bias_initializer = bias_initializer,
+                            kernel_regularizer = kernel_regularizer,
+                            bias_regularizer = bias_regularizer
                            )
                      )
 
@@ -235,7 +260,7 @@ def nn_load(path_name,
 
     """
 
-    model = tensorflow.python.keras.models.load_model(path_name, 
+    model = tensorflow.python.keras.models.load_model(path_name,
                                                       compile = compile)
 
     history_path = path_name.replace("models",
