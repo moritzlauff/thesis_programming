@@ -1142,9 +1142,9 @@ def enkf_linear_problem_analysis(setting_dict,
         tikhonov (dict): Dictionary containing
             regularize (bool): Whether or not to use Tikhonov regularization.
             lambda (None or float): Lambda parameter in Tikhonov regularization.
-        variance_inflation (dict): Dictionary containing
-            inflation (bool): Whether or not to use variance inflation.
-            alpha (float or None): Scaling parameter for identity matrix of the inflation.
+            variance_inflation (dict): Dictionary containing
+                inflation (bool): Whether or not to use variance inflation.
+                alpha (float or None): Scaling parameter for identity matrix of the inflation.
 
 
     Returns:
@@ -1199,9 +1199,6 @@ def enkf_linear_problem_analysis(setting_dict,
         var_inflation = analysis_dict["variance_inflation"]["inflation"]
         var_alpha = analysis_dict["variance_inflation"]["alpha"]
 
-    if not batch_particle_connection:
-        tik_regularize = False
-
     if tik_lambda is None:
         tik_lambda = 0
 
@@ -1234,6 +1231,18 @@ def enkf_linear_problem_analysis(setting_dict,
             else:
                 return 1/y_true.shape[0] * (np.transpose(gamma_HM12 @ y_true - y_pred) @ (gamma_HM12 @ y_true - y_pred)) + tik_lambda * np.sum(param**2)
 
+    def grad_loss(A, x, y, gamma_noise):
+        if not noise:
+            if not tik_regularize:
+                return np.transpose(A) @ A @ x - np.transpose(A) @ y
+            else:
+                return np.transpose(A) @ A @ x - np.transpose(A) @ y + tik_lambda * x
+        else:
+            if not tik_regularize:
+                return np.transpose(A) @ gamma_noise @ A @ x - np.transpose(A) @ gamma_noise @ y
+            else:
+                return np.transpose(A) @ gamma_noise @ A @ x - np.transpose(A) @ gamma_noise @ y + tik_lambda * x
+
     if batch_size is None:
         batch_size = A.shape[0]
 
@@ -1246,6 +1255,9 @@ def enkf_linear_problem_analysis(setting_dict,
         n = A.shape[0]
         num_batches = int(np.ceil(n / batch_size))
         last_batch_size = n % batch_size
+
+    if not noise:
+        gamma_noise_batches = np.zeros(num_batches)
 
     indices = np.arange(n)
     if disjoint_batch:
@@ -1377,16 +1389,7 @@ def enkf_linear_problem_analysis(setting_dict,
 
                 D_dict = {}
                 for i in range(particles):
-                    if not noise:
-                        if not tik_regularize:
-                            D_dict["particle_{}".format(str(i+1))] = np.transpose(A_batches[b]) @ A_batches[b] @ param_dict["particle_{}".format(str(i+1))] - np.transpose(A_batches[b]) @ y_batches[b]
-                        else:
-                            D_dict["particle_{}".format(str(i+1))] = np.transpose(A_batches[b]) @ A_batches[b] @ param_dict["particle_{}".format(str(i+1))] - np.transpose(A_batches[b]) @ y_batches[b] + tik_lambda * param_dict["particle_{}".format(str(i+1))]
-                    else:
-                        if not tik_regularize:
-                            D_dict["particle_{}".format(str(i+1))] = np.transpose(A_batches[b]) @ gamma_noise_batches[b] @ A_batches[b] @ param_dict["particle_{}".format(str(i+1))] - np.transpose(A_batches[b]) @ gamma_noise_batches[b] @ y_batches[b]
-                        else:
-                            D_dict["particle_{}".format(str(i+1))] = np.transpose(A_batches[b]) @ gamma_noise_batches[b] @ A_batches[b] @ param_dict["particle_{}".format(str(i+1))] - np.transpose(A_batches[b]) @ gamma_noise_batches[b] @ y_batches[b] + tik_lambda * param_dict["particle_{}".format(str(i+1))]
+                    D_dict["particle_{}".format(str(i+1))] = grad_loss(A_batches[b], param_dict["particle_{}".format(str(i+1))], y_batches[b], gamma_noise_batches[b])
 
                 for i in range(particles):
                     param_dict["particle_{}".format(str(i+1))] = param_dict["particle_{}".format(str(i+1))] - h_t * C @ D_dict["particle_{}".format(str(i+1))]
@@ -1415,16 +1418,7 @@ def enkf_linear_problem_analysis(setting_dict,
             D_dict = {}
             for i in range(particles):
                 batch = bp_dict["particle_{}".format(str(i+1))] - 1
-                if not noise:
-                    if not tik_regularize:
-                        D_dict["particle_{}".format(str(i+1))] = np.transpose(A_batches[batch]) @ A_batches[batch] @ param_dict["particle_{}".format(str(i+1))] - np.transpose(A_batches[batch]) @ y_batches[batch]
-                    else:
-                        D_dict["particle_{}".format(str(i+1))] = np.transpose(A_batches[batch]) @ A_batches[batch] @ param_dict["particle_{}".format(str(i+1))] - np.transpose(A_batches[batch]) @ y_batches[batch] + tik_lambda * param_dict["particle_{}".format(str(i+1))]
-                else:
-                    if not tik_regularize:
-                        D_dict["particle_{}".format(str(i+1))] = np.transpose(A_batches[batch]) @ gamma_noise_batches[batch] @ A_batches[batch] @ param_dict["particle_{}".format(str(i+1))] - np.transpose(A_batches[batch]) @ gamma_noise_batches[batch] @ y_batches[batch]
-                    else:
-                        D_dict["particle_{}".format(str(i+1))] = np.transpose(A_batches[batch]) @ gamma_noise_batches[batch] @ A_batches[batch] @ param_dict["particle_{}".format(str(i+1))] - np.transpose(A_batches[batch]) @ gamma_noise_batches[batch] @ y_batches[batch] + tik_lambda * param_dict["particle_{}".format(str(i+1))]
+                D_dict["particle_{}".format(str(i+1))] = grad_loss(A_batches[batch], param_dict["particle_{}".format(str(i+1))], y_batches[batch], gamma_noise_batches[batch])
 
             for i in range(particles):
                 param_dict["particle_{}".format(str(i+1))] = param_dict["particle_{}".format(str(i+1))] - h_t * C @ D_dict["particle_{}".format(str(i+1))]
@@ -1466,6 +1460,7 @@ def enkf_linear_problem_analysis(setting_dict,
     # compute the optimal parameter for comparison
     A = return_dict["A"]
     y = return_dict["y"]
+    y_0 = y
 
     if not return_dict["var_inflation"]:
         x_0 = np.transpose(np.array(list(return_dict["param_init_dict"].values())))
@@ -1485,9 +1480,9 @@ def enkf_linear_problem_analysis(setting_dict,
         else:
             delta = 0.005
             if not noise:
-                beta = np.linalg.inv(np.transpose(x_0) @ np.transpose(A) @ A @ x_0 + delta * np.identity(n = x_0.shape[1])) @ np.transpose(x_0) @ np.transpose(A) @ y_0
+                beta = np.linalg.inv(np.transpose(x_0) @ np.transpose(A) @ A @ x_0 + delta * np.identity(n = x_0.shape[1])) @ np.transpose(x_0) @ np.transpose(A) @ y
             else:
-                beta = np.linalg.inv(np.transpose(x_0) @ np.transpose(A) @ gamma_noise @ A @ x_0 + delta * np.identity(n = x_0.shape[1])) @ np.transpose(x_0) @ np.transpose(A) @ gamma_noise @ y_0
+                beta = np.linalg.inv(np.transpose(x_0) @ np.transpose(A) @ gamma_noise @ A @ x_0 + delta * np.identity(n = x_0.shape[1])) @ np.transpose(x_0) @ np.transpose(A) @ gamma_noise @ y
 
         x_opt_subspace = x_0 @ beta
         x_opt_fullSpace = None
@@ -1495,9 +1490,9 @@ def enkf_linear_problem_analysis(setting_dict,
     else:
         if return_dict["tik_regularize"]:
             if not noise:
-                x_opt_fullSpace = np.linalg.inv(np.transpose(A) @ A + return_dict["tik_lambda"] * np.identity(n = A.shape[1])) @ np.transpose(A) @ y
+                x_opt_fullSpace = np.linalg.inv(np.transpose(A) @ A + return_dict["tik_lambda"] * np.identity(n = A.shape[1])) @ np.transpose(A) @ y_0
             else:
-                x_opt_fullSpace = np.linalg.inv(np.transpose(A) @ gamma_noise @ A + return_dict["tik_lambda"] * np.identity(n = A.shape[1])) @ np.transpose(A) @ gamma_noise @ y
+                x_opt_fullSpace = np.linalg.inv(np.transpose(A) @ gamma_noise @ A + return_dict["tik_lambda"] * np.identity(n = A.shape[1])) @ np.transpose(A) @ gamma_noise @ y_0
         else:
             if not noise:
                 x_opt_fullSpace = np.linalg.inv(np.transpose(A) @ A) @ np.transpose(A) @ y
