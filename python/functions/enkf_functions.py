@@ -49,10 +49,8 @@ def enkf_classifier(X_train,
         h_0 (int or float): Starting step size.
         delta (float): Constant for numerical stability in the jacobian.
         epsilon (float): Constant for numerical stability in the step size.
-        randomization (bool): Whether or not to add noise to the particles and randomize them around their mean.
         shuffle (bool): Whether or not to shuffle the data prior to each epoch.
-        early_stopping (bool): Whether or not to stop the calculation when the changes get small.
-        early_stopping_diff (bool): Minimum change before early stopping is applied.
+        early_stopping (float or None): Minimum change before early stopping is applied.
     save_all (bool): Whether or not to save all important variables and models.
     file_var (str): Path and name of the file to save variables into.
     file_model (str): Path and name of the file to save the final model into.
@@ -71,10 +69,8 @@ def enkf_classifier(X_train,
     h_0 = setting_dict["h_0"]
     delta = setting_dict["delta"]
     epsilon = setting_dict["epsilon"]
-    randomization = setting_dict["randomization"]
     shuffle = setting_dict["shuffle"]
     early_stopping = setting_dict["early_stopping"]
-    early_stopping_diff = setting_dict["early_stopping_diff"]
 
     if batch_size == None:
         batch_size = len(X_train)
@@ -137,14 +133,14 @@ def enkf_classifier(X_train,
     for epoch in range(epochs):
 
         # early stopping
-        if early_stopping:
+        if early_stopping is not None:
             if epoch == 0:
                 train_acc_old = 0
                 test_acc_old = 0
             else:
                 train_acc_new = mean_model_train_acc[epoch]
                 test_acc_new = mean_model_test_acc[epoch]
-                if np.absolute(test_acc_new - test_acc_old) <= early_stopping_diff and np.absolute(train_acc_new - train_acc_old) <= early_stopping_diff:
+                if np.absolute(test_acc_new - test_acc_old) <= early_stopping and np.absolute(train_acc_new - train_acc_old) <= early_stopping:
                     print("STOP: Early Stopping after epoch {} because improvement in training accuracy is only {} and in test accuracy only {}."\
                                                                          .format(epoch, train_acc_new - train_acc_old, test_acc_new - test_acc_old))
                     break
@@ -209,44 +205,6 @@ def enkf_classifier(X_train,
                     end = shape_elements[l+1]
                     weights_dict["model_{}".format(str(i+1))][l] = np.reshape(weights_vector_dict["model_{}".format(str(i+1))][start:end], tuple(shapes[l]))
 
-                if randomization:
-                    # add randomization/ noise to each particle
-                    new_weights = []
-                    # standard deviation for scaled Glorot distribution
-                    for s in range(len(shapes)):
-                        if shapes[s].shape[0] == 2:
-                            fan_in = shapes[s][0]
-                            fan_out = shapes[s][1]
-                        if shapes[s].shape[0] == 1:
-                            fan_in = shapes[s-1][0]
-                            fan_out = shapes[s][0]
-                        stddev = np.sqrt(np.sqrt(h_t)) * np.sqrt(2 / (fan_in + fan_out))
-                        noise = np.random.normal(loc = 0.0,
-                                                 scale = stddev,
-                                                 size = tuple(shapes[s]))
-                        new_weights.append(weights_dict["model_{}".format(str(i+1))][s] + noise)
-                    weights_dict["model_{}".format(str(i+1))] = new_weights
-
-        if randomization:
-            # randomize particles around their mean
-            weights_mean = list(np.mean(list(weights_dict.values()), axis = 0))
-            for i in range(particles):
-                new_weights = []
-                # standard deviation for Glorot distribution
-                for s in range(len(shapes)):
-                    if shapes[s].shape[0] == 2:
-                        fan_in = shapes[s][0]
-                        fan_out = shapes[s][1]
-                    if shapes[s].shape[0] == 1:
-                        fan_in = shapes[s-1][0]
-                        fan_out = shapes[s][0]
-                    stddev = np.sqrt(2 / (fan_in + fan_out))
-                    noise = np.random.normal(loc = 0.0,
-                                             scale = stddev,
-                                             size = tuple(shapes[s]))
-                    new_weights.append(weights_mean[s] + noise)
-                weights_dict["model_{}".format(str(i+1))] = new_weights
-
         for i in range(particles):
             # for every particle write the training accuracy of the current iteration in a dictionary
             train_acc_dict["model_{}".format(str(i+1))].append(model_dict["model_{}".format(str(i+1))]\
@@ -284,10 +242,8 @@ def enkf_classifier(X_train,
                                    h_0,
                                    delta,
                                    epsilon,
-                                   randomization,
                                    shuffle,
-                                   early_stopping,
-                                   early_stopping_diff
+                                   early_stopping
                                    )
         results_dict = results_to_dict(mean_model_train_acc,
                                        mean_model_test_acc,
@@ -360,10 +316,8 @@ def enkf_classifier_extension(extend_model,
     h_0 = settings["parameters"]["h_0"]
     delta = settings["parameters"]["delta"]
     epsilon = settings["parameters"]["epsilon"]
-    randomization = settings["parameters"]["randomization"]
     shuffle = settings["parameters"]["shuffle"]
     early_stopping = settings["parameters"]["early_stopping"]
-    early_stopping_diff = settings["parameters"]["early_stopping"]
 
     mean_model_train_acc = settings["results"]["mean_model_train_acc"]
     mean_model_test_acc = settings["results"]["mean_model_test_acc"]
@@ -411,14 +365,14 @@ def enkf_classifier_extension(extend_model,
     for epoch in range(epochs, additional_epochs + epochs):
 
         # early stopping
-        if early_stopping:
+        if early_stopping is not None:
             if epoch == 0:
                 train_acc_old = 0
                 test_acc_old = 0
             else:
                 train_acc_new = mean_model_train_acc[epoch]
                 test_acc_new = mean_model_test_acc[epoch]
-                if np.absolute(test_acc_new - test_acc_old) <= early_stopping_diff and np.absolute(train_acc_new - train_acc_old) <= early_stopping_diff:
+                if np.absolute(test_acc_new - test_acc_old) <= early_stopping and np.absolute(train_acc_new - train_acc_old) <= early_stopping:
                     print("STOP: Early Stopping after epoch {} because improvement in training accuracy is only {} and in test accuracy only {}."\
                                                                          .format(epoch, train_acc_new - train_acc_old, test_acc_new - test_acc_old))
                     break
@@ -482,44 +436,6 @@ def enkf_classifier_extension(extend_model,
                     end = shape_elements[l+1]
                     weights_dict["model_{}".format(str(i+1))][l] = np.reshape(weights_vector_dict["model_{}".format(str(i+1))][start:end], tuple(shapes[l]))
 
-                if randomization:
-                    # add randomization/ noise to each particle
-                    new_weights = []
-                    # standard deviation for scaled Glorot distribution
-                    for s in range(len(shapes)):
-                        if shapes[s].shape[0] == 2:
-                            fan_in = shapes[s][0]
-                            fan_out = shapes[s][1]
-                        if shapes[s].shape[0] == 1:
-                            fan_in = shapes[s-1][0]
-                            fan_out = shapes[s][0]
-                        stddev = np.sqrt(np.sqrt(h_t)) * np.sqrt(2 / (fan_in + fan_out))
-                        noise = np.random.normal(loc = 0.0,
-                                                 scale = stddev,
-                                                 size = tuple(shapes[s]))
-                        new_weights.append(weights_dict["model_{}".format(str(i+1))][s] + noise)
-                    weights_dict["model_{}".format(str(i+1))] = new_weights
-
-        if randomization:
-            # randomize particles around their mean
-            weights_mean = list(np.mean(list(weights_dict.values()), axis = 0))
-            for i in range(particles):
-                new_weights = []
-                # standard deviation for Glorot distribution
-                for s in range(len(shapes)):
-                    if shapes[s].shape[0] == 2:
-                        fan_in = shapes[s][0]
-                        fan_out = shapes[s][1]
-                    if shapes[s].shape[0] == 1:
-                        fan_in = shapes[s-1][0]
-                        fan_out = shapes[s][0]
-                    stddev = np.sqrt(2 / (fan_in + fan_out))
-                    noise = np.random.normal(loc = 0.0,
-                                             scale = stddev,
-                                             size = tuple(shapes[s]))
-                    new_weights.append(weights_mean[s] + noise)
-                weights_dict["model_{}".format(str(i+1))] = new_weights
-
         for i in range(particles):
             # for every particle write the training accuracy of the current iteration in a dictionary
             train_acc_dict["model_{}".format(str(i+1))].append(model_dict["model_{}".format(str(i+1))]\
@@ -557,10 +473,8 @@ def enkf_classifier_extension(extend_model,
                                    h_0,
                                    delta,
                                    epsilon,
-                                   randomization,
                                    shuffle,
-                                   early_stopping,
-                                   early_stopping_diff
+                                   early_stopping
                                    )
         results_dict = results_to_dict(mean_model_train_acc,
                                        mean_model_test_acc,
@@ -619,10 +533,8 @@ def enkf_regressor(X_train,
         h_0 (int or float): Starting step size.
         delta (float): Constant for numerical stability in the jacobian.
         epsilon (float): Constant for numerical stability in the step size.
-        randomization (bool): Whether or not to add noise to the particles and randomize them around their mean.
         shuffle (bool): Whether or not to shuffle the data prior to each epoch.
-        early_stopping (bool): Whether or not to stop the calculation when the changes get small.
-        early_stopping_diff (bool): Minimum change before early stopping is applied.
+        early_stopping (float or None): Minimum change before early stopping is applied.
     save_all (bool): Whether or not to save all important variables and models.
     file_var (str): Path and name of the file to save variables into.
     file_model (str): Path and name of the file to save the final model into.
@@ -641,10 +553,8 @@ def enkf_regressor(X_train,
     h_0 = setting_dict["h_0"]
     delta = None
     epsilon = setting_dict["epsilon"]
-    randomization = setting_dict["randomization"]
     shuffle = setting_dict["shuffle"]
     early_stopping = setting_dict["early_stopping"]
-    early_stopping_diff = setting_dict["early_stopping_diff"]
 
     if batch_size == None:
         batch_size = len(X_train)
@@ -709,14 +619,14 @@ def enkf_regressor(X_train,
     for epoch in range(epochs):
 
         # early stopping
-        if early_stopping:
+        if early_stopping is not None:
             if epoch == 0:
                 train_mse_old = 0
                 test_mse_old = 0
             else:
                 train_mse_new = mean_model_train_mse[epoch]
                 test_mse_new = mean_model_test_mse[epoch]
-                if np.absolute(test_mse_new - test_mse_old) <= early_stopping_diff and np.absolute(train_mse_new - train_mse_old) <= early_stopping_diff:
+                if np.absolute(test_mse_new - test_mse_old) <= early_stopping and np.absolute(train_mse_new - train_mse_old) <= early_stopping:
                     print("STOP: Early Stopping after epoch {} because improvement in training MSE is only {} and in test mse only {}."\
                                                                          .format(epoch, train_mse_new - train_mse_old, test_mse_new - test_mse_old))
                     break
@@ -780,44 +690,6 @@ def enkf_regressor(X_train,
                     end = shape_elements[l+1]
                     weights_dict["model_{}".format(str(i+1))][l] = np.reshape(weights_vector_dict["model_{}".format(str(i+1))][start:end], tuple(shapes[l]))
 
-                if randomization:
-                    # add randomization/ noise to each particle
-                    new_weights = []
-                    # standard deviation for scaled Glorot distribution
-                    for s in range(len(shapes)):
-                        if shapes[s].shape[0] == 2:
-                            fan_in = shapes[s][0]
-                            fan_out = shapes[s][1]
-                        if shapes[s].shape[0] == 1:
-                            fan_in = shapes[s-1][0]
-                            fan_out = shapes[s][0]
-                        stddev = np.sqrt(np.sqrt(h_t)) * np.sqrt(2 / (fan_in + fan_out))
-                        noise = np.random.normal(loc = 0.0,
-                                                 scale = stddev,
-                                                 size = tuple(shapes[s]))
-                        new_weights.append(weights_dict["model_{}".format(str(i+1))][s] + noise)
-                    weights_dict["model_{}".format(str(i+1))] = new_weights
-
-        if randomization:
-            # randomize particles around their mean
-            weights_mean = list(np.mean(list(weights_dict.values()), axis = 0))
-            for i in range(particles):
-                new_weights = []
-                # standard deviation for Glorot distribution
-                for s in range(len(shapes)):
-                    if shapes[s].shape[0] == 2:
-                        fan_in = shapes[s][0]
-                        fan_out = shapes[s][1]
-                    if shapes[s].shape[0] == 1:
-                        fan_in = shapes[s-1][0]
-                        fan_out = shapes[s][0]
-                    stddev = np.sqrt(2 / (fan_in + fan_out))
-                    noise = np.random.normal(loc = 0.0,
-                                             scale = stddev,
-                                             size = tuple(shapes[s]))
-                    new_weights.append(weights_mean[s] + noise)
-                weights_dict["model_{}".format(str(i+1))] = new_weights
-
         for i in range(particles):
             # for every particle write the training MSE of the current iteration in a dictionary
             train_mse_dict["model_{}".format(str(i+1))].append(model_dict["model_{}".format(str(i+1))]\
@@ -855,10 +727,8 @@ def enkf_regressor(X_train,
                                    h_0,
                                    delta,
                                    epsilon,
-                                   randomization,
                                    shuffle,
-                                   early_stopping,
-                                   early_stopping_diff
+                                   early_stopping
                                    )
         results_dict = results_to_dict(mean_model_train_mse,
                                        mean_model_test_mse,
@@ -929,10 +799,8 @@ def enkf_regressor_extension(extend_model,
     h_0 = settings["parameters"]["h_0"]
     delta = settings["parameters"]["delta"]
     epsilon = settings["parameters"]["epsilon"]
-    randomization = settings["parameters"]["randomization"]
     shuffle = settings["parameters"]["shuffle"]
     early_stopping = settings["parameters"]["early_stopping"]
-    early_stopping_diff = settings["parameters"]["early_stopping"]
 
     mean_model_train_mse = settings["results"]["mean_model_train_mse"]
     mean_model_test_mse = settings["results"]["mean_model_test_mse"]
@@ -980,14 +848,14 @@ def enkf_regressor_extension(extend_model,
     for epoch in range(epochs, additional_epochs + epochs):
 
         # early stopping
-        if early_stopping:
+        if early_stopping is not None:
             if epoch == 0:
                 train_mse_old = 0
                 test_mse_old = 0
             else:
                 train_mse_new = mean_model_train_mse[epoch]
                 test_mse_new = mean_model_test_mse[epoch]
-                if np.absolute(test_mse_new - test_mse_old) <= early_stopping_diff and np.absolute(train_mse_new - train_mse_old) <= early_stopping_diff:
+                if np.absolute(test_mse_new - test_mse_old) <= early_stopping and np.absolute(train_mse_new - train_mse_old) <= early_stopping:
                     print("STOP: Early Stopping after epoch {} because improvement in training MSE is only {} and in test mse only {}."\
                                                                          .format(epoch, train_mse_new - train_mse_old, test_mse_new - test_mse_old))
                     break
@@ -1051,44 +919,6 @@ def enkf_regressor_extension(extend_model,
                     end = shape_elements[l+1]
                     weights_dict["model_{}".format(str(i+1))][l] = np.reshape(weights_vector_dict["model_{}".format(str(i+1))][start:end], tuple(shapes[l]))
 
-                if randomization:
-                    # add randomization/ noise to each particle
-                    new_weights = []
-                    # standard deviation for scaled Glorot distribution
-                    for s in range(len(shapes)):
-                        if shapes[s].shape[0] == 2:
-                            fan_in = shapes[s][0]
-                            fan_out = shapes[s][1]
-                        if shapes[s].shape[0] == 1:
-                            fan_in = shapes[s-1][0]
-                            fan_out = shapes[s][0]
-                        stddev = np.sqrt(np.sqrt(h_t)) * np.sqrt(2 / (fan_in + fan_out))
-                        noise = np.random.normal(loc = 0.0,
-                                                 scale = stddev,
-                                                 size = tuple(shapes[s]))
-                        new_weights.append(weights_dict["model_{}".format(str(i+1))][s] + noise)
-                    weights_dict["model_{}".format(str(i+1))] = new_weights
-
-        if randomization:
-            # randomize particles around their mean
-            weights_mean = list(np.mean(list(weights_dict.values()), axis = 0))
-            for i in range(particles):
-                new_weights = []
-                # standard deviation for Glorot distribution
-                for s in range(len(shapes)):
-                    if shapes[s].shape[0] == 2:
-                        fan_in = shapes[s][0]
-                        fan_out = shapes[s][1]
-                    if shapes[s].shape[0] == 1:
-                        fan_in = shapes[s-1][0]
-                        fan_out = shapes[s][0]
-                    stddev = np.sqrt(2 / (fan_in + fan_out))
-                    noise = np.random.normal(loc = 0.0,
-                                             scale = stddev,
-                                             size = tuple(shapes[s]))
-                    new_weights.append(weights_mean[s] + noise)
-                weights_dict["model_{}".format(str(i+1))] = new_weights
-
         for i in range(particles):
             # for every particle write the training MSE of the current iteration in a dictionary
             train_mse_dict["model_{}".format(str(i+1))].append(model_dict["model_{}".format(str(i+1))]\
@@ -1126,10 +956,8 @@ def enkf_regressor_extension(extend_model,
                                    h_0,
                                    delta,
                                    epsilon,
-                                   randomization,
                                    shuffle,
-                                   early_stopping,
-                                   early_stopping_diff
+                                   early_stopping
                                    )
         results_dict = results_to_dict(mean_model_train_mse,
                                        mean_model_test_mse,
@@ -1175,7 +1003,6 @@ def enkf_inverse_problem(setting_dict
         std (np.array): Standard deviation of the noise.
         h_0 (int or float): Starting step size.
         epsilon (float): Constant for numerical stability in the step size.
-        randomization (bool): Whether or not to add noise to the particles and randomize them around their mean.
 
 
     Returns:
@@ -1197,7 +1024,6 @@ def enkf_inverse_problem(setting_dict
     std = setting_dict["std"]
     h_0 = setting_dict["h_0"]
     epsilon = setting_dict["epsilon"]
-    # randomization = setting_dict["randomization"]
 
 
     if noise and any(std == None):
@@ -1272,26 +1098,6 @@ def enkf_inverse_problem(setting_dict
         for i in range(particles):
             param_dict["particle_{}".format(str(i+1))] = params_all_ptcls[i]
 
-        #     if randomization:
-        #         # add randomization/ noise to each particle
-        #         stddev = 0.1
-        #         noise = np.random.normal(loc = 0.0,
-        #                                  scale = stddev,
-        #                                  size = param_dict["particle_{}".format(str(i+1))].shape)
-        #         new_param = param_dict["particle_{}".format(str(i+1))] + noise
-        #         param_dict["particle_{}".format(str(i+1))] = new_param
-
-        # if randomization:
-        #     # randomize particles around their mean
-        #     param_dict_mean = list(np.mean(list(param_dict.values()), axis = 0))
-        #     for i in range(particles):
-        #         stddev = 0.1
-        #         noise = np.random.normal(loc = 0.0,
-        #                                  scale = stddev,
-        #                                  size = param_dict["particle_{}".format(str(i+1))].shape)
-        #         new_params = param_dict_mean + noise
-        #         param_dict["particle_{}".format(str(i+1))] = new_params
-
         # compute loss for the parameter means
         param_mean = np.mean(params_all_ptcls, axis = 0)
         loss_evolution.append(loss(y, model_func(param_mean)))
@@ -1336,9 +1142,9 @@ def enkf_linear_problem_analysis(setting_dict,
         tikhonov (dict): Dictionary containing
             regularize (bool): Whether or not to use Tikhonov regularization.
             lambda (None or float): Lambda parameter in Tikhonov regularization.
-            variance_inflation (dict): Dictionary containing
-                inflation (bool): Whether or not to use variance inflation.
-                alpha (float or None): Scaling parameter for identity matrix of the inflation.
+        variance_inflation (dict): Dictionary containing
+            inflation (bool): Whether or not to use variance inflation.
+            alpha (float or None): Scaling parameter for identity matrix of the inflation.
 
 
     Returns:

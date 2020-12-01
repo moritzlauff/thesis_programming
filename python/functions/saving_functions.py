@@ -18,10 +18,8 @@ def param_to_dict(X_train,
                   h_0,
                   delta,
                   epsilon,
-                  randomization,
                   shuffle,
-                  early_stopping,
-                  early_stopping_diff
+                  early_stopping
                   ):
 
     """ Function to write some objects into a dictionary.
@@ -58,10 +56,8 @@ def param_to_dict(X_train,
     param_dict["h_0"] = h_0
     param_dict["delta"] = delta
     param_dict["epsilon"] = epsilon
-    param_dict["randomization"] = randomization
     param_dict["shuffle"] = shuffle
     param_dict["early_stopping"] = early_stopping
-    param_dict["early_stopping_diff"] = early_stopping_diff
 
     return param_dict
 
