@@ -603,7 +603,7 @@ def nn_plot_cosine_sims(model_object_path_list,
     """
 
     cosines_dict = {}
-    for i, model in model_object_path_list:
+    for i, model in enumerate(model_object_path_list):
         cosines_dict["model_{}".format(str(i+1))] = np.mean(nn_plot_final_cosine_sim(model,
                                                                                      layer = layer,
                                                                                      bins = 0,
@@ -611,11 +611,12 @@ def nn_plot_cosine_sims(model_object_path_list,
                                                                                      return_sims = True))
 
     plt.figure(figsize = (8,5))
-    plt.plot(np.arange(len(model_object_path_list)), list(cosines_dict.values()))
+    plt.plot(xticks, list(cosines_dict.values()), marker = "s")
     plt.xlabel(xlabel, fontsize = 16)
     plt.ylabel("Mean of cosine similarity", fontsize = 16)
     plt.xticks(ticks = xticks, fontsize = 14)
     plt.yticks(fontsize = 14)
+    plt.grid()
     if save is not None:
         plt.savefig(save)
     plt.show()
