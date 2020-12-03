@@ -13,6 +13,9 @@ python/architecture/__pycache__
 /old_tests
 /old_bike
 /cluster_programming
+/img/inverse_problem/IP_thesis_plots
+/img/wine/wine_thesis_plots
+/img/mnist/mnist_thesis_plots
 
 /objects/mnist
 
