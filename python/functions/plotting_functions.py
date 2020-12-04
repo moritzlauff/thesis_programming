@@ -44,8 +44,7 @@ def nn_plot_acc(model,
                 tick_diff = 5,
                 marker = True,
                 title = "",
-                savefig = False,
-                file = "../img/accuracy.png"
+                save = None
                ):
 
     """ Function to plot the evolution of the accuracy of the neural network.
@@ -59,8 +58,7 @@ def nn_plot_acc(model,
     tick_diff (int): Difference between two ticks on the x-axis.
     marker (bool): Whether or not to use square markers.
     title (str): Title of the plot.
-    savefig (bool): Whether or not to save the plot.
-    file (str): Path and filename if savefig is True.
+    save (str or None): File path for saving the plot.
 
 
     """
@@ -113,8 +111,8 @@ def nn_plot_acc(model,
     plt.ylim(top = 1.1,
              bottom = -0.1)
     plt.grid()
-    if savefig:
-        plt.savefig(file)
+    if save is not None:
+        plt.savefig(save)
     plt.show()
 
 def nn_plot_acc_many(model_list,
@@ -124,8 +122,7 @@ def nn_plot_acc_many(model_list,
                      start_epoch = 1,
                      tick_diff = 5,
                      title = "",
-                     savefig = False,
-                     file = "../img/mse.png"
+                     save = None
                     ):
 
     """ Function to plot the evolution of the mean squared error of
@@ -141,8 +138,7 @@ def nn_plot_acc_many(model_list,
     start_epoch (int): Epoch to start the plot with. Helpful for better visibility if the first MSEs are much higher than the later ones.
     tick_diff (int): Difference between two ticks on the x-axis.
     title (str): Title of the plot.
-    savefig (bool): Whether or not to save the plot.
-    file (str): Path and filename if savefig is True.
+    save (str or None): File path for saving the plot.
 
 
     """
@@ -203,8 +199,8 @@ def nn_plot_acc_many(model_list,
     plt.ylim(top = 1.1,
              bottom = -0.1)
     plt.grid()
-    if savefig:
-        plt.savefig(file)
+    if save is not None:
+        plt.savefig(save)
     plt.show()
 
 def nn_plot_mse(model,
@@ -213,8 +209,7 @@ def nn_plot_mse(model,
                 tick_diff = 5,
                 marker = True,
                 title = "",
-                savefig = False,
-                file = "../img/accuracy_per_epoch.png"
+                save = None
                 ):
 
     """ Function to plot the evolution of the mean squared error of the
@@ -229,8 +224,7 @@ def nn_plot_mse(model,
     tick_diff (int): Difference between two ticks on the x-axis.
     marker (bool): Whether or not to use square markers.
     title (str): Title of the plot.
-    savefig (bool): Whether or not to save the plot.
-    file (str): Path and filename if savefig is True.
+    save (str or None): File path for saving the plot.
 
 
     """
@@ -281,8 +275,8 @@ def nn_plot_mse(model,
     plt.xticks(ticks = xticks, fontsize = 14)
     plt.yticks(fontsize = 14)
     plt.grid()
-    if savefig:
-        plt.savefig(file)
+    if save is not None:
+        plt.savefig(save)
     plt.show()
 
 def nn_plot_mse_many(model_list,
@@ -292,8 +286,7 @@ def nn_plot_mse_many(model_list,
                      start_epoch = 1,
                      tick_diff = 5,
                      title = "",
-                     savefig = False,
-                     file = "../img/mse.png"
+                     save = None
                     ):
 
     """ Function to plot the evolution of the mean squared error of
@@ -309,8 +302,7 @@ def nn_plot_mse_many(model_list,
     start_epoch (int): Epoch to start the plot with. Helpful for better visibility if the first MSEs are much higher than the later ones.
     tick_diff (int): Difference between two ticks on the x-axis.
     title (str): Title of the plot.
-    savefig (bool): Whether or not to save the plot.
-    file (str): Path and filename if savefig is True.
+    save (str or None): File path for saving the plot.
 
 
     """
@@ -369,16 +361,15 @@ def nn_plot_mse_many(model_list,
     plt.xticks(ticks = xticks, fontsize = 14)
     plt.yticks(fontsize = 14)
     plt.grid()
-    if savefig:
-        plt.savefig(file)
+    if save is not None:
+        plt.savefig(save)
     plt.show()
 
 def nn_conf_mat(y_true,
                 y_pred,
                 plotting = True,
                 title = "",
-                savefig = False,
-                file = "../img/conf_mat.png"
+                save = None
                 ):
 
     """ Function to get and plot the confusion matrix of a classificaton model.
@@ -390,8 +381,7 @@ def nn_conf_mat(y_true,
     y_pred (list): Predicted labels.
     plotting (bool): Whether or not to plot the confusion matrix.
     title (str): Title of the plot.
-    savefig (bool): Whether or not to save the plot.
-    file (str): Path and filename if savefig is True.
+    save (str or None): File path for saving the plot.
 
 
 
@@ -422,8 +412,8 @@ def nn_conf_mat(y_true,
         plt.yticks(rotation = 0, fontsize = 16)
         plt.xlabel("Predicted Label", fontsize = 20)
         plt.ylabel("True Label", fontsize = 20)
-        if savefig:
-            plt.savefig(file)
+        if save is not None:
+            plt.savefig(save)
         plt.show()
 
     return cm
