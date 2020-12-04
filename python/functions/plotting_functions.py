@@ -43,6 +43,7 @@ def nn_plot_acc(model,
                 start_epoch = 1,
                 tick_diff = 5,
                 marker = True,
+                at_tick = False,
                 title = "",
                 save = None
                ):
@@ -57,6 +58,7 @@ def nn_plot_acc(model,
     start_epoch (int): First epoch to be plotted. Helpful for large difference in first and last loss value.
     tick_diff (int): Difference between two ticks on the x-axis.
     marker (bool): Whether or not to use square markers.
+    at_tick (bool): Whether or not to only plot the values at the ticks. Helpful for large numbers of epochs.
     title (str): Title of the plot.
     save (str or None): File path for saving the plot.
 
@@ -87,6 +89,8 @@ def nn_plot_acc(model,
                          num = num_round)
     xticks = np.delete(xticks, np.where(xticks <= start_epoch))
     xticks = np.append(xticks, [start_epoch])
+    if at_tick:
+        xticks = np.array([int(tick) for tick in np.sort(xticks)])
 
     if marker:
         marker = "s"
@@ -94,8 +98,12 @@ def nn_plot_acc(model,
         marker = None
 
     plt.figure(figsize = (8,5))
-    plt.plot(np.arange(len(train_acc_list))[start_epoch:] , train_acc_list[start_epoch:], label = "Training", marker = marker)
-    plt.plot(np.arange(len(test_acc_list))[start_epoch:], test_acc_list[start_epoch:], label = "Testing", marker = marker)
+    if not at_tick:
+        plt.plot(np.arange(len(train_acc_list))[start_epoch:], train_acc_list[start_epoch:], label = "Training", marker = marker)
+        plt.plot(np.arange(len(train_acc_list))[start_epoch:], train_acc_list[start_epoch:], label = "Testing", marker = marker)
+    else:
+        plt.plot(xticks, [train_acc_list[i] for i in xticks-1], label = "Training", marker = marker)
+        plt.plot(xticks, [train_acc_list[i] for i in xticks-1], label = "Testing", marker = marker)
     if mean_comparison is not None:
         plt.hlines(y = mean_comparison,
                    xmin = start_epoch,
@@ -208,6 +216,7 @@ def nn_plot_mse(model,
                 start_epoch = 1,
                 tick_diff = 5,
                 marker = True,
+                at_tick = False,
                 title = "",
                 save = None
                 ):
@@ -223,6 +232,7 @@ def nn_plot_mse(model,
     start_epoch (int): First epoch to be plotted. Helpful for large difference in first and last loss value.
     tick_diff (int): Difference between two ticks on the x-axis.
     marker (bool): Whether or not to use square markers.
+    at_tick (bool): Whether or not to only plot the values at the ticks. Helpful for large numbers of epochs.
     title (str): Title of the plot.
     save (str or None): File path for saving the plot.
 
@@ -253,6 +263,8 @@ def nn_plot_mse(model,
                          num = num_round)
     xticks = np.delete(xticks, np.where(xticks <= start_epoch))
     xticks = np.append(xticks, [start_epoch])
+    if at_tick:
+        xticks = np.array([int(tick) for tick in np.sort(xticks)])
 
     if marker:
         marker = "s"
@@ -260,8 +272,12 @@ def nn_plot_mse(model,
         marker = None
 
     plt.figure(figsize = (8,5))
-    plt.plot(np.arange(len(train_mse_list))[start_epoch:] , train_mse_list[start_epoch:], label = "Training", marker = marker)
-    plt.plot(np.arange(len(test_mse_list))[start_epoch:], test_mse_list[start_epoch:], label = "Testing", marker = marker)
+    if not at_tick:
+        plt.plot(np.arange(len(train_mse_list))[start_epoch:], train_mse_list[start_epoch:], label = "Training", marker = marker)
+        plt.plot(np.arange(len(test_mse_list))[start_epoch:], test_mse_list[start_epoch:], label = "Testing", marker = marker)
+    else:
+        plt.plot(xticks, [train_mse_list[i] for i in xticks-1], label = "Training", marker = marker)
+        plt.plot(xticks, [test_mse_list[i] for i in xticks-1], label = "Testing", marker = marker)
     if mse_mean is not None:
         plt.hlines(y = mse_mean,
                    xmin = start_epoch,
@@ -670,6 +686,7 @@ def plot_IP_loss_evolution(return_dict,
                            reg_line = False,
                            tick_diff = 5,
                            marker = True,
+                           at_tick = False,
                            xlabel = "Iteration",
                            save = None
                            ):
@@ -685,6 +702,7 @@ def plot_IP_loss_evolution(return_dict,
     reg_line (bool): Whether or not to plot the line of the corresponding analytic linear regression MSE. Only for enkf_linear_inverse_problem_analysis.
     tick_diff (int): Difference between two ticks on the x-axis.
     marker (bool): Whether or not to use square markers.
+    at_tick (bool): Whether or not to only plot the values at the ticks. Helpful for large numbers of epochs.
     xlabel (str): Label of the x-axis. Should be either "Iteration" or "Epoch".
     save (str or None): File path for saving the plot.
 
@@ -698,6 +716,8 @@ def plot_IP_loss_evolution(return_dict,
                          num = int((len(loss_evolution) - 1) / tick_diff + 1))
     xticks = np.delete(xticks, np.where(xticks <= start_iteration))
     xticks = np.append(xticks, [start_iteration])
+    if at_tick:
+        xticks = [int(tick) for tick in np.sort(xticks)]
 
     if reg_line and return_dict["var_inflation"]:
         reg_line = False
@@ -711,9 +731,14 @@ def plot_IP_loss_evolution(return_dict,
         marker = None
 
     plt.figure(figsize = (8,5))
-    plt.plot(np.arange(len(loss_evolution))[start_iteration:],
-             loss_evolution[start_iteration:],
-             marker = marker)
+    if not at_tick:
+        plt.plot(np.arange(len(loss_evolution))[start_iteration:],
+                 loss_evolution[start_iteration:],
+                 marker = marker)
+    else:
+        plt.plot(xticks,
+                 [loss_evolution[i] for i in xticks],
+                 marker = marker)
     if reg_line:
         plt.hlines(mse,
                    start_iteration,
@@ -1078,6 +1103,7 @@ def plot_IP_final_cosine_sim(return_dict,
                        ymin = 0,
                        ymax = max_height,
                        color = "black",
+                       linewidth = 5,
                        label = "Similarity to optimal parameter")
             comp = True
         elif "x_opt_fullSpace" in list(return_dict.keys()) and return_dict["x_opt_fullSpace"] is not None:
@@ -1085,6 +1111,7 @@ def plot_IP_final_cosine_sim(return_dict,
                        ymin = 0,
                        ymax = max_height,
                        color = "black",
+                       linewidth = 5,
                        label = "Similarity to optimal parameter")
             comp = True
     plt.xlabel("Cosine similarity", fontsize = 16)
