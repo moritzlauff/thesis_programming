@@ -807,7 +807,7 @@ def plot_IP_loss_evolution_many(setting_dict,
         setting_dict[parameter] = parameter_list[i]
         if seed is not None:
             np.random.seed(seed)
-        if not linear:
+        if (not linear) or (linear and analysis_dict is None):
             return_dict = enkf_inverse_problem(setting_dict)
         else:
             return_dict = enkf_linear_problem_analysis(setting_dict,
@@ -1037,11 +1037,11 @@ def plot_IP_cosine_sims(setting_dict,
         elif parameter == "iteration":
             setting_dict["iterations"] = parameter_list[i]
             setting_dict["epochs"] = parameter_list[i]
-        if linear:
+        if (not linear) or (linear and analysis_dict is None):
+            return_dict = enkf_inverse_problem(setting_dict)
+        else:
             return_dict = enkf_linear_problem_analysis(setting_dict,
                                                        analysis_dict)
-        else:
-            return_dict = enkf_inverse_problem(setting_dict)
         cos_matrix = np.tril(cosine_similarity(list(return_dict["param_dict"].values())), k = -1)
         if parameter == "particle":
             cosine_dict["P{}".format(parameter_list[i])] = np.mean(cos_matrix[cos_matrix != 0])

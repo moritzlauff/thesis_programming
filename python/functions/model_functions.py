@@ -16,7 +16,6 @@ from tensorflow.python.keras.models import Sequential
 from tensorflow.python.keras.regularizers import l2
 import numpy as np
 import reproducible
-from training_callback import BatchAccuracy
 import pickle
 import os
 from saving_functions import load_objects
