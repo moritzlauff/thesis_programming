@@ -4,8 +4,6 @@
 #   nn_model_fit
 #   nn_save
 #   nn_load
-#   nn_class_pred_true
-#   nn_mse_pred_true
 
 import sys
 sys.path.insert(1, "../architecture")
@@ -296,76 +294,3 @@ def nn_load(path_name,
         model.epoch = list(np.arange(len(list(model.history.values())[0])))
 
     return model
-
-def nn_class_pred_true(model,
-                       X_test,
-                       y_test,
-                       print_comp = False
-                       ):
-
-    """ Function to extract true and predicted labels of a classification model.
-
-
-    Parameters:
-
-    model (tensorflow.python.keras.engine.sequential.Sequential): Some fitted model.
-    X_test (np.ndarray): X test data.
-    y_test (pd. DataFrame): Onehot encoded y test data.
-    print_comp (bool): Whether or not to print the comparison result.
-
-
-
-    Returns:
-
-    y_true (list): True labels.
-    y_pred (list): Predicted labels.
-
-
-    """
-
-    y_pred = [np.argmax(i) for i in model.predict(X_test)]
-    y_true = list(y_test.reset_index(drop = True).apply(lambda x: np.argmax(x), axis = 1))
-
-    if print_comp:
-        for i in range(len(y_pred)):
-            print("Prediction: {}, Actual: {}, {}".format(y_pred[i],
-                                                          y_true[i],
-                                                          y_pred[i] == y_true[i]))
-
-    return y_true, y_pred
-
-def nn_mse_pred_true(model,
-                     X_test,
-                     y_test,
-                     print_comp = False
-                     ):
-
-    """ Function to extract true and predicted values of a regression model.
-
-
-    Parameters:
-
-    model (tensorflow.python.keras.engine.sequential.Sequential): Some fitted model.
-    X_test (pd.DataFrame): X test data.
-    y_test (pd. DataFrame): Y test data.
-    print_comp (bool): Whether or not to print the comparison result.
-
-
-
-    Returns:
-
-    y_true (list): True labels.
-    y_pred (list): Predicted labels.
-
-
-    """
-
-    y_pred = np.array(model.predict(X_test))
-    y_true = y_test.reset_index(drop = True)
-
-    if print_comp:
-        for i in range(len(y_pred)):
-            print("Prediction: {}, Actual: {}".format(y_pred[i][0],
-                                                      y_true[i]))
-
-    return y_true, y_pred

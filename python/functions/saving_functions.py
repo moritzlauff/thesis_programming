@@ -27,7 +27,7 @@ def param_to_dict(X_train,
 
     Parameters:
 
-        Inputs of enkf_classifier.
+        Inputs of enkf_classifier or enkf_regressor.
 
     Returns:
 
@@ -75,7 +75,7 @@ def results_to_dict(mean_model_train_AccMSE,
 
     Parameters:
 
-        Outputs of enkf_classifier.
+        Outputs of enkf_classifier or enkf_regressor.
         classfication (bool): Whether or not it is a classification problem.
 
     Returns:

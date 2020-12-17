@@ -1163,7 +1163,7 @@ def enkf_regressor_extension(extend_model,
                              verbose = 0
                              ):
 
-    """ Ensemble Kalman Filter algorithm for epoch extension of regression problems.
+    """ Ensemble KalmanFilter algorithm for epoch extension of regression problems.
 
 
     Parameters:
