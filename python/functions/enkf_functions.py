@@ -4,8 +4,8 @@
 #   enkf_classifier_analysis
 #   enkf_regressor
 #   enkf_regressor_extension
-#   enkf_inverse_problem
 #   enkf_regressor_analysis
+#   enkf_inverse_problem
 #   enkf_linear_problem_analysis
 
 import sys
