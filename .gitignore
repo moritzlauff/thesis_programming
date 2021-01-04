@@ -1,22 +1,9 @@
 # data folder
 /notebooks/.ipynb_checkpoints
 /notebooks/__pycache__
-/code_test/.ipynb_checkpoints
-python/functions/__pycache__
-python/architecture/__pycache__
-/code_tests
-/data
-/img
-/models
-/objects
-/old_tests
-/old_bike
-/cluster_programming
-/img/inverse_problem/IP_thesis_plots
-/img/wine/wine_thesis_plots
-/img/mnist/mnist_thesis_plots
+/python/functions/__pycache__
+/python/architecture/__pycache__
 
-/objects/mnist
 
 # Python Cache
 .pyc
