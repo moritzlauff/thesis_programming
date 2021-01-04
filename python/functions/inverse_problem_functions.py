@@ -1,6 +1,5 @@
 # functions:
 #   y_noise
-#
 
 import sys
 sys.path.insert(1, "../architecture")
