@@ -2,14 +2,13 @@
 /notebooks/.ipynb_checkpoints
 /notebooks/__pycache__
 /code_test/.ipynb_checkpoints
-# /models
 python/functions/__pycache__
 python/architecture/__pycache__
-# /code_tests
+/code_tests
 /data
-# /img
-# /models
-# /objects
+/img
+/models
+/objects
 /old_tests
 /old_bike
 /cluster_programming
